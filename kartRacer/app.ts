@@ -1,57 +1,90 @@
 import * as BABYLON from 'babylonjs'
 import 'babylonjs-loaders';
+import * as GUI from 'babylonjs-gui';
 
-// Get rid of margin
-document.documentElement.style["overflow"]="hidden"
-document.documentElement.style.overflow ="hidden"
-document.documentElement.style.width ="100%"
-document.documentElement.style.height ="100%"
-document.documentElement.style.margin ="0"
-document.documentElement.style.padding ="0"
-document.body.style.overflow ="hidden"
-document.body.style.width ="100%"
-document.body.style.height ="100%"
-document.body.style.margin ="0"
-document.body.style.padding ="0"
+import {KartEngine} from "./engine";
 
-// Create canvas html element on webpage
-var canvas = document.createElement('canvas')
-canvas.style.width="100%"
-canvas.style.height="100%"
 
-//canvas = document.getElementById("renderCanvas")
-document.body.appendChild(canvas)
+// Create game engine
+var kartEngine = new KartEngine();
+kartEngine.initializeFullSceenApp();
 
-// Initialize Babylon scene and engine
-var engine = new BABYLON.Engine(canvas, true, { stencil: true, disableWebGL2Support: false, preserveDrawingBuffer: true })
-engine.enableOfflineSupport = false
-var scene = new BABYLON.Scene(engine)
-engine.runRenderLoop(()=>{
-    scene.render()
-})
-window.addEventListener("resize", ()=> {
-    engine.resize()
-})
-
-var camera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(0, 5, -10), scene)
-camera.setTarget(BABYLON.Vector3.Zero())
-camera.attachControl(canvas, true)
-var light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 1, 0), scene)
+// Lights and camera
+var camera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(0, 10, 0), kartEngine.scene)
+camera.attachControl(kartEngine.canvas, true)
+var light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 1, 0), kartEngine.scene)
 light.intensity = 0.7
 
+var ground = BABYLON.MeshBuilder.CreateGround("ground", {width: 1000, height: 1000}, kartEngine.scene);
 
-var sphere = BABYLON.Mesh.CreateSphere("sphere1", 16, 2, scene)
-sphere.position.y = 1
+var startingLine = BABYLON.Mesh.CreateBox("start box", 1, kartEngine.scene)
+startingLine.position.z = -30
+startingLine.position.y = 0;
+startingLine.position.x = 5;
 
-var ground = BABYLON.Mesh.CreateGround("ground1", 6, 6, 1, scene)
-ground.material = new BABYLON.StandardMaterial("",scene)
+var env = kartEngine.scene.createDefaultEnvironment()
+env.setMainColor(new BABYLON.Color3(0.1, 0.4,0.6))
 
-BABYLON.SceneLoader.LoadAssetContainer("https://models.babylonjs.com/", "fish.glb", scene, function (container) {
-    // Scale and position the loaded model (First mesh loaded from gltf is the root node)
-    container.meshes[0].scaling.scaleInPlace(0.1)
-    container.meshes[0].position.z = 5
-    container.meshes[0].position.y = -1
+kartEngine.scene.createDefaultLight(true)
 
-    // Add loaded file to the scene
-    container.addAllToScene();
-});
+var uvTexture = new BABYLON.Texture("/public/images/uv.png", kartEngine.scene)
+
+var uvMat = new BABYLON.StandardMaterial("", kartEngine.scene)
+uvMat.diffuseTexture = uvTexture
+ground.material = uvMat
+
+// Main render loop
+kartEngine.scene.onBeforeRenderObservable.add(()=>{
+
+})
+
+var createBillBoardGUI = ()=>{
+    var root = new BABYLON.Mesh("billboard", kartEngine.scene)
+    
+    var guiPlane = BABYLON.Mesh.CreatePlane("guiPlane", 6, kartEngine.scene)
+    guiPlane.position.set(0,10,10);
+    guiPlane.material = new BABYLON.StandardMaterial("",kartEngine.scene)
+
+    console.log(GUI)
+    // BABYLON.engine.SceneLoader.LoadAssetContainer("https://models.babylonjs.com/", "fish.glb", engine.scene, function (container) {
+    //     // Scale and position the loaded model (First mesh loaded from gltf is the root node)
+    //     container.meshes[0].scaling.scaleInPlace(0.1)
+    //     container.meshes[0].position.z = 5
+    //     container.meshes[0].position.y = -1
+
+    //     // Add loaded file to the engine.scene
+    //     container.addAllToengine.Scene();
+    // });
+
+    var mainMenuGUI = GUI.AdvancedDynamicTexture.CreateForMesh(guiPlane);
+
+    var stackPanel = new GUI.StackPanel();  
+    stackPanel.top = "100px";
+    mainMenuGUI.addControl(stackPanel);    
+
+    var button1 = GUI.Button.CreateSimpleButton("but1", "Start Game");
+    button1.width = 1;
+    button1.height = "100px";
+    button1.color = "white";
+    button1.fontSize = 50;
+    button1.background = "green"
+    stackPanel.addControl(button1);
+
+    button1.onPointerUpObservable.add(function() {
+        var bezierEase = new BABYLON.BezierCurveEase(0.32, 0.73, 0.69, 1.59);
+        BABYLON.Animation.CreateAndStartAnimation("moveCamera", camera, "position", 60, 60, camera.position, startingLine.position.add(new BABYLON.Vector3(0, 3, -30)), BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT, bezierEase);
+
+        console.log("click!")
+    });
+
+    
+
+    var billBoardBase = BABYLON.Mesh.CreateBox("base", 1, kartEngine.scene)
+    billBoardBase.scaling.y = 10;
+    billBoardBase.position.set(0,5,0)
+
+    return root
+}
+
+var bb = createBillBoardGUI();
+
