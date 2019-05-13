@@ -3,6 +3,7 @@ import 'babylonjs-loaders';
 import * as GUI from 'babylonjs-gui';
 
 import {KartEngine} from "./engine";
+import { watchFile } from 'fs';
 
 
 // Create game engine
@@ -17,6 +18,7 @@ light.intensity = 0.7
 
 var ground = BABYLON.MeshBuilder.CreateGround("ground", {width: 1000, height: 1000}, kartEngine.scene);
 
+// Starting Reference Point; Remove when Starting Point Vector is available
 var startingLine = BABYLON.Mesh.CreateBox("start box", 1, kartEngine.scene)
 startingLine.position.z = -30
 startingLine.position.y = 0;
@@ -35,7 +37,7 @@ ground.material = uvMat
 
 // Main render loop
 kartEngine.scene.onBeforeRenderObservable.add(()=>{
-
+    
 })
 
 var createBillBoardGUI = (startPos : BABYLON.Vector3)=>{
@@ -50,7 +52,6 @@ var createBillBoardGUI = (startPos : BABYLON.Vector3)=>{
     stackPanel.top = "100px";
 
     mainMenuGUI.addControl(stackPanel);
-    mainMenuGUI.background = "white";
 
     var button1 = GUI.Button.CreateSimpleButton("but1", "Start Game");
     button1.width = 1;
@@ -59,21 +60,32 @@ var createBillBoardGUI = (startPos : BABYLON.Vector3)=>{
     button1.fontSize = 50;
     button1.background = "green"
     stackPanel.addControl(button1);
-
-    button1.onPointerUpObservable.add(function() {
-        var bezierEase = new BABYLON.BezierCurveEase(0.32, 0.73, 0.69, 1.59);
-        BABYLON.Animation.CreateAndStartAnimation("moveCamera", camera, "position", 60, 60, camera.position, startingLine.position.add(startPos), BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT, bezierEase);
-
-        console.log("click!")
-    });
-
-    
+    var button2 = GUI.Button.CreateSimpleButton("but2", "End Game");
+    button2.width = 1;
+    button2.height = "100px";
+    button2.color = "white";
+    button2.fontSize = 50;
+    button2.background = "green"
+    stackPanel.addControl(button2);
 
     var billBoardBase = BABYLON.Mesh.CreateBox("base", 1, kartEngine.scene)
     billBoardBase.scaling.y = 10;
     billBoardBase.position.set(0,5,10.51)
 
+    var billBoardPanel = BABYLON.Mesh.CreateBox("billboardPanel",1, kartEngine.scene)
+    billBoardPanel.scaling.x = 12;
+    billBoardPanel.scaling.y = 6;
+    billBoardPanel.position.set(0,10,10.51)
+
+    button1.onPointerUpObservable.add(function() {
+        var bezierEase = new BABYLON.BezierCurveEase(0.5, 0, 0.5, 1);
+        BABYLON.Animation.CreateAndStartAnimation("moveCamera", 
+            camera, "position", 60, 120, camera.position, startPos, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT, bezierEase);
+    });
+
     return root
 }
-var startingPosition = new BABYLON.Vector3(0, 3, -30);
+
+// Set Starting Position and Move to Track
+var startingPosition = startingLine.position.add(new BABYLON.Vector3(0, 3, 0));
 var bb = createBillBoardGUI(startingPosition);
