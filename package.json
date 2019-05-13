@@ -1,0 +1,23 @@
+{
+  "name": "babylon-kart-racer",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "concurrently \"webpack -w\" \"nodemon dist\\server.js\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@types/express": "^4.16.1",
+    "babylonjs": "^4.0.3",
+    "babylonjs-loaders": "^4.0.3",
+    "express": "^4.16.4",
+    "glob": "^7.1.4",
+    "pug": "^2.0.3",
+    "ts-loader": "^6.0.0",
+    "typescript": "^3.4.5",
+    "webpack-node-externals": "^1.7.2"
+  }
+}
