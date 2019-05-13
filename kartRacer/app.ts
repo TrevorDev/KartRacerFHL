@@ -10,7 +10,7 @@ var kartEngine = new KartEngine();
 kartEngine.initializeFullSceenApp();
 
 // Lights and camera
-var camera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(0, 10, 0), kartEngine.scene)
+var camera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(0, 10, 3), kartEngine.scene)
 camera.attachControl(kartEngine.canvas, true)
 var light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 1, 0), kartEngine.scene)
 light.intensity = 0.7
@@ -38,29 +38,19 @@ kartEngine.scene.onBeforeRenderObservable.add(()=>{
 
 })
 
-var createBillBoardGUI = ()=>{
+var createBillBoardGUI = (startPos : BABYLON.Vector3)=>{
     var root = new BABYLON.Mesh("billboard", kartEngine.scene)
     
     var guiPlane = BABYLON.Mesh.CreatePlane("guiPlane", 6, kartEngine.scene)
     guiPlane.position.set(0,10,10);
     guiPlane.material = new BABYLON.StandardMaterial("",kartEngine.scene)
 
-    console.log(GUI)
-    // BABYLON.engine.SceneLoader.LoadAssetContainer("https://models.babylonjs.com/", "fish.glb", engine.scene, function (container) {
-    //     // Scale and position the loaded model (First mesh loaded from gltf is the root node)
-    //     container.meshes[0].scaling.scaleInPlace(0.1)
-    //     container.meshes[0].position.z = 5
-    //     container.meshes[0].position.y = -1
-
-    //     // Add loaded file to the engine.scene
-    //     container.addAllToengine.Scene();
-    // });
-
     var mainMenuGUI = GUI.AdvancedDynamicTexture.CreateForMesh(guiPlane);
-
     var stackPanel = new GUI.StackPanel();  
     stackPanel.top = "100px";
-    mainMenuGUI.addControl(stackPanel);    
+
+    mainMenuGUI.addControl(stackPanel);
+    mainMenuGUI.background = "white";
 
     var button1 = GUI.Button.CreateSimpleButton("but1", "Start Game");
     button1.width = 1;
@@ -72,7 +62,7 @@ var createBillBoardGUI = ()=>{
 
     button1.onPointerUpObservable.add(function() {
         var bezierEase = new BABYLON.BezierCurveEase(0.32, 0.73, 0.69, 1.59);
-        BABYLON.Animation.CreateAndStartAnimation("moveCamera", camera, "position", 60, 60, camera.position, startingLine.position.add(new BABYLON.Vector3(0, 3, -30)), BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT, bezierEase);
+        BABYLON.Animation.CreateAndStartAnimation("moveCamera", camera, "position", 60, 60, camera.position, startingLine.position.add(startPos), BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT, bezierEase);
 
         console.log("click!")
     });
@@ -81,10 +71,9 @@ var createBillBoardGUI = ()=>{
 
     var billBoardBase = BABYLON.Mesh.CreateBox("base", 1, kartEngine.scene)
     billBoardBase.scaling.y = 10;
-    billBoardBase.position.set(0,5,0)
+    billBoardBase.position.set(0,5,10.51)
 
     return root
 }
-
-var bb = createBillBoardGUI();
-
+var startingPosition = new BABYLON.Vector3(0, 3, -30);
+var bb = createBillBoardGUI(startingPosition);
