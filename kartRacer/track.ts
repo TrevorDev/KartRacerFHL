@@ -58,17 +58,10 @@ export class Track {
             ];
         }
         const trees = this.getTreePoints(.9, 1, .5, pathArray);
-        trees.forEach((p, n)=>{
-                    const cube = Mesh.CreateBox("", 0.3, scene);
-                    cube.position.copyFrom(trees[n]);
-                })
-
-        const ribbon = RibbonBuilder.CreateRibbon("track", {
-            pathArray: pathArray
-        });
-
-
-
+        trees.forEach((p, n) => {
+            const cube = Mesh.CreateBox("", 0.3, scene);
+            cube.position.copyFrom(trees[n]);
+        })
 
         const ribbon = RibbonBuilder.CreateRibbon("track", {
             pathArray: pathArray
@@ -119,11 +112,9 @@ export class Track {
         return points;
     }
 
-    private getTreePoints(density: number, radius: number, minDistance: number, pathArray: Array<Array<Vector3>>) : Array<Vector3>
-    {
+    private getTreePoints(density: number, radius: number, minDistance: number, pathArray: Array<Array<Vector3>>): Array<Vector3> {
         const trees = [];
-        for (var index = 0; index < pathArray.length; ++index) 
-        {
+        for (var index = 0; index < pathArray.length; ++index) {
 
             const leftSide = pathArray[index][1];
             const rightSide = pathArray[index][2];
@@ -131,46 +122,37 @@ export class Track {
             let direction = rightSide.subtract(leftSide);
             direction.y = 0;
 
-            if (Math.random() < density)
-            {
-                const distanceFromPath = Math.random()*radius + minDistance;
+            if (Math.random() < density) {
+                const distanceFromPath = Math.random() * radius + minDistance;
                 trees.push(rightSide.add(direction.scale(distanceFromPath)));
             }
 
-            if (Math.random() < density)
-            {
-                const distanceFromPath = Math.random()*radius + minDistance;
+            if (Math.random() < density) {
+                const distanceFromPath = Math.random() * radius + minDistance;
                 trees.push(leftSide.subtract(direction.scale(distanceFromPath)));
             }
         }
 
         // Delete trees that were were generated too close to the track.
         const spacedTrees = [];
-        for (var index = 0; index < trees.length - 1; ++index)
-        {
+        for (var index = 0; index < trees.length - 1; ++index) {
             let isSpaced = true;
-            for (var j = 0; j < spacedTrees.length; ++j)
-            {
+            for (var j = 0; j < spacedTrees.length; ++j) {
                 const distanceBetween = trees[index].subtract(spacedTrees[j]).length();
-                if (distanceBetween < minDistance)
-                {
+                if (distanceBetween < minDistance) {
                     isSpaced = false;
                 }
             }
 
-            for (var j = 0; j < pathArray.length; ++j)
-            {
-                for (var  k = 0; k < pathArray[j].length; ++k)
-                {
+            for (var j = 0; j < pathArray.length; ++j) {
+                for (var k = 0; k < pathArray[j].length; ++k) {
                     const distanceBetween = trees[index].subtract(pathArray[j][k]).length();
-                    if (distanceBetween < minDistance)
-                    {
+                    if (distanceBetween < minDistance) {
                         isSpaced = false;
                     }
                 }
             }
-            if (isSpaced)
-            {
+            if (isSpaced) {
                 spacedTrees.push(trees[index]);
             }
         }
