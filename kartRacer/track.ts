@@ -1,6 +1,6 @@
-import { Scene } from "babylonjs/scene";
-import { Vector3, Curve3, RibbonBuilder, PBRMaterial, Texture, Tools, Mesh } from "babylonjs";
-import {KartEngine} from "./engine"
+import { Vector3, Curve3, RibbonBuilder, PBRMaterial, Texture, Tools, Scene, TransformNode } from "@babylonjs/core";
+import { KartEngine } from "./engine";
+
 export class Track {
     public readonly startPoint: Vector3;
     public readonly startTarget: Vector3;
@@ -57,16 +57,23 @@ export class Track {
                 point.add(apron1).addInPlace(apron2),
             ];
         }
-        const trees = this.getTreePoints(.9, 1, .5, pathArray);
 
-        trees.forEach((p, n)=>{
-            
-                    var cube = KartEngine.instance.assets.tree.clone("clone", null, false);
-                    scene.addMesh(cube as any);
-                    (cube as any).position.copyFrom(trees[n]);
-                })
+        this.createTrack(scene, pathArray, curve.length(), options.width);
 
-        const ribbon = RibbonBuilder.CreateRibbon("track", {
+        const trees = new TransformNode("trees", scene);
+        const treePoints = this.getTreePoints(0.9, 1.0, 0.5, pathArray);
+        for (const treePoint of treePoints) {
+            const tree = KartEngine.instance.assets.tree.createInstance("tree");
+            tree.position.copyFrom(treePoint);
+            tree.parent = trees;
+        }
+
+        this.startPoint = getPoint(0);
+        this.startTarget = getPoint(1);
+    }
+
+    private createTrack(scene: Scene, pathArray: Array<Array<Vector3>>, width: number, length: number): void {
+        const track = RibbonBuilder.CreateRibbon("track", {
             pathArray: pathArray
         });
 
@@ -80,7 +87,7 @@ export class Track {
         const bumpTexture = new Texture("public/textures/SimpleTrack_normal.png", scene);
         const metallicTexture = new Texture("public/textures/SimpleTrack_ORM.png", scene);
 
-        const vScale = Math.round(curve.length() / (options.width * 2));
+        const vScale = Math.round(length / (width * 2));
         albedoTexture.vScale = vScale;
         bumpTexture.vScale = vScale;
         metallicTexture.vScale = vScale;
@@ -95,10 +102,7 @@ export class Track {
         material.useRoughnessFromMetallicTextureGreen = true;
         material.useRoughnessFromMetallicTextureAlpha = false;
 
-        ribbon.material = material;
-
-        this.startPoint = getPoint(0);
-        this.startTarget = getPoint(1);
+        track.material = material;
     }
 
     private getTrackPoints(numPoints: number, radius: number, lateralVariance: number, heightVariance: number): Array<Vector3> {
@@ -116,7 +120,7 @@ export class Track {
     }
 
     private getTreePoints(density: number, radius: number, minDistance: number, pathArray: Array<Array<Vector3>>): Array<Vector3> {
-        const trees = [];
+        const trees: Array<Vector3> = [];
         for (var index = 0; index < pathArray.length; ++index) {
 
             const leftSide = pathArray[index][1];
@@ -125,25 +129,26 @@ export class Track {
             let direction = rightSide.subtract(leftSide);
             direction.y = 0;
 
-            if (Math.random() < density) {
-                const distanceFromPath = Math.random() * radius + minDistance;
+            if (this.random() < density) {
+                const distanceFromPath = this.random() * radius + minDistance;
                 trees.push(rightSide.add(direction.scale(distanceFromPath)));
             }
 
-            if (Math.random() < density) {
-                const distanceFromPath = Math.random() * radius + minDistance;
+            if (this.random() < density) {
+                const distanceFromPath = this.random() * radius + minDistance;
                 trees.push(leftSide.subtract(direction.scale(distanceFromPath)));
             }
         }
 
         // Delete trees that were were generated too close to the track.
-        const spacedTrees = [];
+        const spacedTrees: Array<Vector3> = [];
         for (var index = 0; index < trees.length - 1; ++index) {
             let isSpaced = true;
             for (var j = 0; j < spacedTrees.length; ++j) {
                 const distanceBetween = trees[index].subtract(spacedTrees[j]).length();
                 if (distanceBetween < minDistance) {
                     isSpaced = false;
+                    break;
                 }
             }
 
@@ -152,9 +157,11 @@ export class Track {
                     const distanceBetween = trees[index].subtract(pathArray[j][k]).length();
                     if (distanceBetween < minDistance) {
                         isSpaced = false;
+                        break;
                     }
                 }
             }
+
             if (isSpaced) {
                 spacedTrees.push(trees[index]);
             }

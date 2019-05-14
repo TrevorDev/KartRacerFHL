@@ -1,19 +1,19 @@
-import * as BABYLON from 'babylonjs'
-import 'babylonjs-loaders';
-import * as GUI from 'babylonjs-gui';
-import { SceneComponentConstants } from 'babylonjs';
-import {IKartInput, KartInput_Keyboard} from './input'
-import { Assets } from './assets';
+import { IKartInput, KartInput_Keyboard } from "./input";
+import { Assets } from "./assets";
+import { Scene, Observable, Engine, FreeCamera, Vector3 } from "@babylonjs/core";
+
+import "@babylonjs/core/Debug/debugLayer";
+import "@babylonjs/inspector";
 
 export class KartEngine {
-    static instance: KartEngine
-    scene: BABYLON.Scene
-    canvas: HTMLCanvasElement
-    assets = new Assets();
+    public static instance: KartEngine;
+    public scene: Scene;
+    public canvas: HTMLCanvasElement;
+    public readonly assets = new Assets();
 
+    public inputSource: IKartInput;
+    public onInputSourceChangedObservable = new Observable<IKartInput>();
 
-    inputSource: IKartInput
-    OnInputSourceChangedObservable = new BABYLON.Observable<IKartInput>();
     constructor() {
         KartEngine.instance = this;
     }
@@ -41,9 +41,9 @@ export class KartEngine {
         document.body.appendChild(this.canvas)
 
         // Initialize Babylon scene and engine
-        var engine = new BABYLON.Engine(this.canvas, true, { stencil: true, disableWebGL2Support: false, preserveDrawingBuffer: true })
+        const engine = new Engine(this.canvas, true, { stencil: true, disableWebGL2Support: false, preserveDrawingBuffer: true })
         engine.enableOfflineSupport = false
-        this.scene = new BABYLON.Scene(engine)
+        this.scene = new Scene(engine)
         engine.runRenderLoop(() => {
             this.scene.render()
         })
@@ -66,11 +66,11 @@ export class KartEngine {
         // we should determine our running platform and setup default controls accordingly here.
         // stubbed to use keyboard input now.
         this.inputSource = new KartInput_Keyboard(this.scene);
-        this.OnInputSourceChangedObservable.notifyObservers(this.inputSource);
+        this.onInputSourceChangedObservable.notifyObservers(this.inputSource);
 
-        var camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 10, 3), this.scene);
-        await this.assets.loadAssets()
-        
+        const camera = new FreeCamera("camera", new Vector3(0, 10, 3), this.scene);
+        await this.assets.loadAssets();
+
         // .then(()=>{
         //     var c = assets.kart.clone("clone", null, false);
         //     kartEngine.scene.addMesh(c)
