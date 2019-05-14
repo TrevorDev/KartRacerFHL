@@ -62,19 +62,22 @@ export class Track {
 
         const albedoTexture = new Texture("public/textures/SimpleTrack_basecolor.png", scene);
         const bumpTexture = new Texture("public/textures/SimpleTrack_normal.png", scene);
-        const roughnessTexture = new Texture("public/textures/SimpleTrack_roughness.png", scene);
+        const metallicTexture = new Texture("public/textures/SimpleTrack_ORM.png", scene);
 
         const vScale = Math.round(curve.length() / (options.width * 2));
         albedoTexture.vScale = vScale;
         bumpTexture.vScale = vScale;
-        roughnessTexture.vScale = vScale;
+        metallicTexture.vScale = vScale;
 
         material.albedoTexture = albedoTexture;
         material.bumpTexture = bumpTexture;
 
         material.metallic = 0;
         material.roughness = 1;
-        material.metallicTexture = roughnessTexture;
+        material.metallicTexture = metallicTexture;
+        material.useMetallnessFromMetallicTextureBlue = true;
+        material.useRoughnessFromMetallicTextureGreen = true;
+        material.useRoughnessFromMetallicTextureAlpha = false;
 
         ribbon.material = material;
 
