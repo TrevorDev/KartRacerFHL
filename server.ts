@@ -35,10 +35,12 @@ io.on('connection', function(socket:(sio.Socket & {customData:any})){
         socket.customData.position.y = pose.position.y
         socket.customData.position.z = pose.position.z
 
-        socket.customData.rotation.x = pose.rotation.x
-        socket.customData.rotation.y = pose.rotation.y
-        socket.customData.rotation.z = pose.rotation.z
-        socket.customData.rotation.w = pose.rotation.w
+        if (pose.rotation) {
+            socket.customData.rotation.x = pose.rotation.x
+            socket.customData.rotation.y = pose.rotation.y
+            socket.customData.rotation.z = pose.rotation.z
+            socket.customData.rotation.w = pose.rotation.w
+        }
     })
     socket.on("disconnect", ()=>{
         if(!rooms[socket.customData.roomName]){

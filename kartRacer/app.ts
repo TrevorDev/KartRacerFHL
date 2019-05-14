@@ -78,7 +78,7 @@ var createBillBoardGUI = () => {
 
     button1.onPointerUpObservable.add(function () {
         var bezierEase = new BABYLON.BezierCurveEase(0.32, 0.73, 0.69, 1.59);
-        BABYLON.Animation.CreateAndStartAnimation("moveCamera", camera, "position", 60, 60, camera.position, startingLine.position.add(new BABYLON.Vector3(0, 3, -30)), BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT, bezierEase);
+        //BABYLON.Animation.CreateAndStartAnimation("moveCamera", camera, "position", 60, 60, camera.position, startingLine.position.add(new BABYLON.Vector3(0, 3, -30)), BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT, bezierEase);
 
         console.log("click!")
     });
