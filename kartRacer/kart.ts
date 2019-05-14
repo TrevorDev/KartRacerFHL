@@ -29,7 +29,6 @@ export class Kart extends BABYLON.TransformNode {
         // this can probably be refactored out of Kart.
         if(this.locallyOwned){
             this.setup3rdPersonKartCamera();
-            console.log(this.camera.getClassName());
             scene.onBeforeRenderObservable.add(() => {
                 // stubbed for testing Input system.
                 if(this.input){
