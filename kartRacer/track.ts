@@ -17,7 +17,7 @@ export class Track {
             options.heightVariance
         );
 
-        const curve = Curve3.CreateCatmullRomSpline(controlPoints, options.radius, true);
+        const curve = Curve3.CreateCatmullRomSpline(controlPoints, options.radius * 0.05, true);
         const points = curve.getPoints();
 
         function getPoint(index: number): Vector3 {
