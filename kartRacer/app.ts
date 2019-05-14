@@ -3,7 +3,7 @@ import 'babylonjs-loaders';
 import * as GUI from 'babylonjs-gui';
 
 import {KartEngine} from "./engine";
-
+import {Multiplayer} from "./multiplayer"
 
 // Create game engine
 var kartEngine = new KartEngine();
@@ -11,6 +11,7 @@ kartEngine.initializeFullSceenApp();
 
 // Lights and camera
 var camera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(0, 10, 0), kartEngine.scene)
+camera.rotationQuaternion = new BABYLON.Quaternion()
 camera.attachControl(kartEngine.canvas, true)
 var light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 1, 0), kartEngine.scene)
 light.intensity = 0.7
@@ -33,9 +34,14 @@ var uvMat = new BABYLON.StandardMaterial("", kartEngine.scene)
 uvMat.diffuseTexture = uvTexture
 ground.material = uvMat
 
+// Multiplayer
+var multiplayer = new Multiplayer(kartEngine.scene);
+multiplayer.connectToRoom("testRoom")
+multiplayer.trackedObject = camera;
+
 // Main render loop
 kartEngine.scene.onBeforeRenderObservable.add(()=>{
-
+    multiplayer.update()
 })
 
 var createBillBoardGUI = ()=>{
