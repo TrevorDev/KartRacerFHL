@@ -23,6 +23,7 @@ var track = new Track(kartEngine.scene, {
 
 const offset = new Vector3(0, 0.5, 0);
 var camera = new BABYLON.FreeCamera("camera", track.startPoint.add(offset), kartEngine.scene);
+camera.rotationQuaternion = new BABYLON.Quaternion()
 camera.setTarget(track.startTarget.add(offset));
 camera.attachControl(kartEngine.canvas);
 camera.minZ = 0.01;
@@ -41,7 +42,7 @@ multiplayer.trackedObject = camera;
 
 // Main render loop
 kartEngine.scene.onBeforeRenderObservable.add(() => {
-
+    multiplayer.update()
 })
 
 var createBillBoardGUI = () => {
