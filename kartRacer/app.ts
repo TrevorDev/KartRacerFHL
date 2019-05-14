@@ -4,7 +4,7 @@ import * as GUI from 'babylonjs-gui';
 
 import { KartEngine } from "./engine";
 import { Track } from './track';
-import { Vector3, Quaternion } from 'babylonjs';
+import { Vector3, Quaternion, AssetContainer } from 'babylonjs';
 import { Multiplayer } from "./multiplayer";
 
 
@@ -41,6 +41,12 @@ multiplayer.trackedObject = camera;
 kartEngine.scene.onBeforeRenderObservable.add(() => {
     multiplayer.update()
 })
+
+// Load kart
+BABYLON.SceneLoader.LoadAssetContainer("/public/models/roadsterKart.gltf", "", kartEngine.scene, function (newMeshes:AssetContainer) {
+    console.log(newMeshes.meshes[0].scaling.scaleInPlace(0.01))
+    newMeshes.addAllToScene()
+});
 
 var createBillBoardGUI = (startPos : BABYLON.Vector3, startRotate : BABYLON.Vector3)=>{
     var root = new BABYLON.Mesh("billboard", kartEngine.scene)
