@@ -4,7 +4,7 @@ import * as GUI from 'babylonjs-gui';
 
 import { KartEngine } from "./engine";
 import { Track } from './track';
-import { Vector3 } from 'babylonjs';
+import { Vector3, Quaternion } from 'babylonjs';
 import { Multiplayer } from "./multiplayer";
 
 
@@ -29,9 +29,6 @@ camera.attachControl(kartEngine.canvas);
 camera.minZ = 0.01;
 camera.maxZ = 1000;
 camera.speed = 1;
-
-// var env = kartEngine.scene.createDefaultEnvironment()
-// env.setMainColor(new BABYLON.Color3(0.1, 0.4, 0.6))
 
 kartEngine.scene.createDefaultLight(true);
 
@@ -76,11 +73,32 @@ var createBillBoardGUI = (startPos : BABYLON.Vector3, startRotate : BABYLON.Vect
     billBoardPanel.position.set(0,10,10.51)
 
     button1.onPointerUpObservable.add(function() {
+        // var a = BABYLON.Mesh.CreateBox("base", 0.1, kartEngine.scene)
+        // var b = BABYLON.Mesh.CreateBox("base", 0.1, kartEngine.scene)
+        // a.position.copyFrom(startPos)
+        // b.position.copyFrom(startRotate)
+
+        
+        var startRot = camera.rotationQuaternion.clone();
+        var oldPos = camera.position.clone()
+        camera.position.copyFrom(startPos)
+        camera.setTarget(startRotate)
+        camera.computeWorldMatrix()
+        var targetRot = camera.rotationQuaternion.clone()
+        camera.position.copyFrom(oldPos)
+        camera.rotationQuaternion.copyFrom(startRot)
+        camera.computeWorldMatrix()
+
         var bezierEase = new BABYLON.BezierCurveEase(0.5, 0, 0.5, 1);
         BABYLON.Animation.CreateAndStartAnimation("moveCamera", 
             camera, "position", 60, 120, camera.position, startPos, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT, bezierEase);
-        //BABYLON.Animation.CreateAndStartAnimation("rotateCamera", 
-        //camera, "rotation", 60, 120, camera.rotation, startRotate, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT, bezierEase);
+
+
+        
+        BABYLON.Animation.CreateAndStartAnimation("rotateCamera", 
+            camera, "rotationQuaternion", 60, 120, camera.rotationQuaternion, targetRot, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT, bezierEase);
+        // BABYLON.Animation.CreateAndStartAnimation("rotateCamera", 
+        // camera, "rotation", 60, 120, camera.rotationQuater, startRotate, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT, bezierEase);
     });
 
     // Set elements as children of root
@@ -93,5 +111,5 @@ var createBillBoardGUI = (startPos : BABYLON.Vector3, startRotate : BABYLON.Vect
 
 // Set Starting Position and Move to Track
 var startingPosition = track.startPoint.add(offset) 
-var startingRotation = track.startTarget
+var startingRotation = track.startTarget.add(offset) 
 var bb = createBillBoardGUI(startingPosition, startingRotation);
