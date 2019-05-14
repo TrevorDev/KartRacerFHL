@@ -2,55 +2,60 @@ import * as BABYLON from 'babylonjs'
 import 'babylonjs-loaders';
 import * as GUI from 'babylonjs-gui';
 
-import {KartEngine} from "./engine";
-import { watchFile } from 'fs';
+import { KartEngine } from "./engine";
+import { Track } from './track';
+import { Vector3 } from 'babylonjs';
+import { Multiplayer } from "./multiplayer";
 
 
 // Create game engine
 var kartEngine = new KartEngine();
 kartEngine.initializeFullSceenApp();
 
-// Lights and camera
-var camera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(0, 10, 3), kartEngine.scene)
-camera.attachControl(kartEngine.canvas, true)
-var light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 1, 0), kartEngine.scene)
-light.intensity = 0.7
+var track = new Track(kartEngine.scene, {
+    radius: 100,
+    numPoints: 16,
+    varianceSeed: 2,
+    lateralVariance: 30,
+    heightVariance: 10,
+    width: 10,
+});
 
-var ground = BABYLON.MeshBuilder.CreateGround("ground", {width: 1000, height: 1000}, kartEngine.scene);
+const offset = new Vector3(0, 0.5, 0);
+//var camera = new BABYLON.FreeCamera("camera", track.startPoint.add(offset), kartEngine.scene);
+var camera = new BABYLON.FreeCamera("camera", new Vector3(0, 10, 3), kartEngine.scene);
+camera.setTarget(track.startTarget.add(offset));
+camera.attachControl(kartEngine.canvas);
+camera.minZ = 0.01;
+camera.maxZ = 1000;
+camera.speed = 1;
 
-// Starting Reference Point; Remove when Starting Point Vector is available
-var startingLine = BABYLON.Mesh.CreateBox("start box", 1, kartEngine.scene)
-startingLine.position.z = -30
-startingLine.position.y = 0;
-startingLine.position.x = 5;
+// var env = kartEngine.scene.createDefaultEnvironment()
+// env.setMainColor(new BABYLON.Color3(0.1, 0.4, 0.6))
 
-var env = kartEngine.scene.createDefaultEnvironment()
-env.setMainColor(new BABYLON.Color3(0.1, 0.4,0.6))
+kartEngine.scene.createDefaultLight(true);
 
-kartEngine.scene.createDefaultLight(true)
-
-var uvTexture = new BABYLON.Texture("/public/images/uv.png", kartEngine.scene)
-
-var uvMat = new BABYLON.StandardMaterial("", kartEngine.scene)
-uvMat.diffuseTexture = uvTexture
-ground.material = uvMat
+// Multiplayer
+var multiplayer = new Multiplayer(kartEngine.scene);
+multiplayer.connectToRoom("testRoom");
+multiplayer.trackedObject = camera;
 
 // Main render loop
-kartEngine.scene.onBeforeRenderObservable.add(()=>{
-    
+kartEngine.scene.onBeforeRenderObservable.add(() => {
+
 })
 
-var createBillBoardGUI = (startPos : BABYLON.Vector3)=>{
+var createBillBoardGUI = (startPos : BABYLON.Vector3, startRotate : BABYLON.Vector3)=>{
     var root = new BABYLON.Mesh("billboard", kartEngine.scene)
-    
+
     var guiPlane = BABYLON.Mesh.CreatePlane("guiPlane", 6, kartEngine.scene)
-    guiPlane.position.set(0,10,10);
-    guiPlane.material = new BABYLON.StandardMaterial("",kartEngine.scene)
+    guiPlane.position.set(0, 10, 10);
+    guiPlane.material = new BABYLON.StandardMaterial("", kartEngine.scene)
 
     var mainMenuGUI = GUI.AdvancedDynamicTexture.CreateForMesh(guiPlane);
-    var stackPanel = new GUI.StackPanel();  
-    stackPanel.top = "100px";
 
+    var stackPanel = new GUI.StackPanel();
+    stackPanel.top = "100px";
     mainMenuGUI.addControl(stackPanel);
 
     var button1 = GUI.Button.CreateSimpleButton("but1", "Start Game");
@@ -74,6 +79,8 @@ var createBillBoardGUI = (startPos : BABYLON.Vector3)=>{
         var bezierEase = new BABYLON.BezierCurveEase(0.5, 0, 0.5, 1);
         BABYLON.Animation.CreateAndStartAnimation("moveCamera", 
             camera, "position", 60, 120, camera.position, startPos, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT, bezierEase);
+        BABYLON.Animation.CreateAndStartAnimation("rotateCamera", 
+        camera, "direction", 60, 120, camera.rotationQuaternion, startRotate, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT, bezierEase);
     });
 
     // Set elements as children of root
@@ -85,5 +92,6 @@ var createBillBoardGUI = (startPos : BABYLON.Vector3)=>{
 }
 
 // Set Starting Position and Move to Track
-var startingPosition = startingLine.position.add(new BABYLON.Vector3(0, 3, 0));
-var bb = createBillBoardGUI(startingPosition);
+var startingPosition = track.startPoint.add(offset) 
+var startingRotation = track.startTarget
+var bb = createBillBoardGUI(startingPosition, startingRotation);
