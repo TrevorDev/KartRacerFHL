@@ -42,6 +42,15 @@ io.on('connection', function(socket:(sio.Socket & {customData:any})){
             socket.customData.rotation.w = pose.rotation.w
         }
     })
+    socket.on("updateTrackLap", (lap)=>{
+        // If the player reported completing a lap, save the lap time
+        if (lap.lap > socket.customData.lap.lap){
+            
+        }
+        socket.customData.lap.lap = lap.lap
+        socket.customData.lap.segment = lap.segment
+
+    })
     socket.on("disconnect", ()=>{
         if(!rooms[socket.customData.roomName]){
             return;

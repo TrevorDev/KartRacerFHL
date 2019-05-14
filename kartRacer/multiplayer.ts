@@ -1,4 +1,5 @@
 import * as BABYLON from 'babylonjs'
+import { Kart } from './kart';
 
 // Socket io
 declare var io:any;
@@ -15,6 +16,7 @@ export class Multiplayer{
         socket.emit("joinRoom", {roomName: "test"});
         socket.on("joinRoomComplete", (e)=>{
             this.localId = e.id;
+            this.trackedObject = new Kart(this.localId, this.scene, true);
             this.repeat(()=>{
                 if(this.trackedObject){
                     socket.emit("updateKartPose", {position: this.trackedObject.position, rotation: this.trackedObject.rotationQuaternion})
@@ -27,7 +29,7 @@ export class Multiplayer{
                         if(!this.trackedServerObjects[p.id]){
                             this.trackedServerObjects[p.id] = {
                                 targetPose: {position: new BABYLON.Vector3(), rotation: new BABYLON.Quaternion()},
-                                object: BABYLON.Mesh.CreateBox("", 1, this.scene)
+                                object: new Kart(p.id, this.scene, false),
                             }
                             this.trackedServerObjects[p.id].object.rotationQuaternion = new BABYLON.Quaternion();
                         }

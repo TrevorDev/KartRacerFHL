@@ -2,12 +2,16 @@ import * as BABYLON from 'babylonjs'
 import 'babylonjs-loaders';
 import * as GUI from 'babylonjs-gui';
 import { SceneComponentConstants } from 'babylonjs';
+import {IKartInput, KartInput_Keyboard} from './input'
 
 export class KartEngine {
+    static instance: KartEngine
     scene: BABYLON.Scene
     canvas: HTMLCanvasElement
+    inputSource: IKartInput
+    OnInputSourceChangedObservable = new BABYLON.Observable<IKartInput>();
     constructor() {
-
+        KartEngine.instance = this;
     }
 
     initializeFullSceenApp() {
@@ -54,5 +58,12 @@ export class KartEngine {
                 }
             }
         });
+
+        // we should determine our running platform and setup default controls accordingly here.
+        // stubbed to use keyboard input now.
+        console.log("engine - create kart input")
+        this.inputSource = new KartInput_Keyboard(this.scene);
+        console.log("engine - notify input source changed.")
+        this.OnInputSourceChangedObservable.notifyObservers(this.inputSource);
     }
 }
