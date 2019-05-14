@@ -60,13 +60,6 @@ var createBillBoardGUI = (startPos : BABYLON.Vector3)=>{
     button1.fontSize = 50;
     button1.background = "green"
     stackPanel.addControl(button1);
-    var button2 = GUI.Button.CreateSimpleButton("but2", "End Game");
-    button2.width = 1;
-    button2.height = "100px";
-    button2.color = "white";
-    button2.fontSize = 50;
-    button2.background = "green"
-    stackPanel.addControl(button2);
 
     var billBoardBase = BABYLON.Mesh.CreateBox("base", 1, kartEngine.scene)
     billBoardBase.scaling.y = 10;
@@ -82,6 +75,11 @@ var createBillBoardGUI = (startPos : BABYLON.Vector3)=>{
         BABYLON.Animation.CreateAndStartAnimation("moveCamera", 
             camera, "position", 60, 120, camera.position, startPos, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT, bezierEase);
     });
+
+    // Set elements as children of root
+    guiPlane.setParent(root);
+    billBoardBase.setParent(root);
+    billBoardPanel.setParent(root);
 
     return root
 }
