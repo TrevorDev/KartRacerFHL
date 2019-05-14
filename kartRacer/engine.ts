@@ -2,15 +2,23 @@ import * as BABYLON from 'babylonjs'
 import 'babylonjs-loaders';
 import * as GUI from 'babylonjs-gui';
 import { SceneComponentConstants } from 'babylonjs';
+import {IKartInput, KartInput_Keyboard} from './input'
+import { Assets } from './assets';
 
 export class KartEngine {
+    static instance: KartEngine
     scene: BABYLON.Scene
     canvas: HTMLCanvasElement
-    constructor() {
+    assets = new Assets();
 
+
+    inputSource: IKartInput
+    OnInputSourceChangedObservable = new BABYLON.Observable<IKartInput>();
+    constructor() {
+        KartEngine.instance = this;
     }
 
-    initializeFullSceenApp() {
+    async initializeFullSceenApp() {
         // Get rid of margin
         document.documentElement.style["overflow"] = "hidden"
         document.documentElement.style.overflow = "hidden"
@@ -54,5 +62,18 @@ export class KartEngine {
                 }
             }
         });
+
+        // we should determine our running platform and setup default controls accordingly here.
+        // stubbed to use keyboard input now.
+        this.inputSource = new KartInput_Keyboard(this.scene);
+        this.OnInputSourceChangedObservable.notifyObservers(this.inputSource);
+
+        var camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 10, 3), this.scene);
+        await this.assets.loadAssets()
+        
+        // .then(()=>{
+        //     var c = assets.kart.clone("clone", null, false);
+        //     kartEngine.scene.addMesh(c)
+        // })
     }
 }

@@ -7,6 +7,7 @@ import { FreeCamera } from 'babylonjs';
 export class Billboard
 {
     private _root : BABYLON.Mesh;
+    public static startGame : boolean = false;
 
     constructor (startPos : BABYLON.Vector3, startRotate : BABYLON.Vector3, kartEngine : KartEngine, camera : FreeCamera)
     {
@@ -56,6 +57,8 @@ export class Billboard
                 
             BABYLON.Animation.CreateAndStartAnimation("rotateCamera", 
             camera, "rotationQuaternion", 60, 120, camera.rotationQuaternion, targetRot, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT, bezierEase);
+
+            Billboard.startGame = true;
         });
 
         // Set elements as children of root
