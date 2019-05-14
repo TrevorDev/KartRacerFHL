@@ -1,29 +1,25 @@
-import * as BABYLON from 'babylonjs'
-import 'babylonjs-loaders';
-import * as GUI from 'babylonjs-gui';
-import { KartEngine } from './engine';
-import { FreeCamera } from 'babylonjs';
+import { KartEngine } from "./engine";
+import { Animation, FreeCamera, Mesh, Vector3, StandardMaterial, BezierCurveEase } from "@babylonjs/core";
+import { AdvancedDynamicTexture, StackPanel, Button } from "@babylonjs/gui";
 
-export class Billboard
-{
-    private _root : BABYLON.Mesh;
-    public static startGame : boolean = false;
+export class Billboard {
+    private _root: Mesh;
+    public static startGame: boolean = false;
 
-    constructor (startPos : BABYLON.Vector3, startRotate : BABYLON.Vector3, kartEngine : KartEngine, camera : FreeCamera)
-    {
-        var root = new BABYLON.Mesh("billboard", kartEngine.scene)
+    constructor(startPos: Vector3, startRotate: Vector3, kartEngine: KartEngine, camera: FreeCamera) {
+        var root = new Mesh("billboard", kartEngine.scene)
 
-        var guiPlane = BABYLON.Mesh.CreatePlane("guiPlane", 6, kartEngine.scene)
+        var guiPlane = Mesh.CreatePlane("guiPlane", 6, kartEngine.scene)
         guiPlane.position.set(0, 10, 10);
-        guiPlane.material = new BABYLON.StandardMaterial("", kartEngine.scene)
+        guiPlane.material = new StandardMaterial("GUI", kartEngine.scene)
 
-        var mainMenuGUI = GUI.AdvancedDynamicTexture.CreateForMesh(guiPlane);
+        var mainMenuGUI = AdvancedDynamicTexture.CreateForMesh(guiPlane);
 
-        var stackPanel = new GUI.StackPanel();
+        var stackPanel = new StackPanel();
         stackPanel.top = "100px";
         mainMenuGUI.addControl(stackPanel);
 
-        var button1 = GUI.Button.CreateSimpleButton("but1", "Start Game");
+        var button1 = Button.CreateSimpleButton("but1", "Start Game");
         button1.width = 1;
         button1.height = "100px";
         button1.color = "white";
@@ -31,16 +27,16 @@ export class Billboard
         button1.background = "green"
         stackPanel.addControl(button1);
 
-        var billBoardBase = BABYLON.Mesh.CreateBox("base", 1, kartEngine.scene)
+        var billBoardBase = Mesh.CreateBox("base", 1, kartEngine.scene)
         billBoardBase.scaling.y = 10;
-        billBoardBase.position.set(0,5,10.51)
+        billBoardBase.position.set(0, 5, 10.51)
 
-        var billBoardPanel = BABYLON.Mesh.CreateBox("billboardPanel",1, kartEngine.scene)
+        var billBoardPanel = Mesh.CreateBox("billboardPanel", 1, kartEngine.scene)
         billBoardPanel.scaling.x = 12;
         billBoardPanel.scaling.y = 6;
-        billBoardPanel.position.set(0,10,10.51)
+        billBoardPanel.position.set(0, 10, 10.51)
 
-        button1.onPointerUpObservable.add(function() {
+        button1.onPointerUpObservable.add(function () {
             var startRot = camera.rotationQuaternion.clone();
             var oldPos = camera.position.clone()
             camera.position.copyFrom(startPos)
@@ -51,12 +47,12 @@ export class Billboard
             camera.rotationQuaternion.copyFrom(startRot)
             camera.computeWorldMatrix()
 
-            var bezierEase = new BABYLON.BezierCurveEase(0.5, 0, 0.5, 1);
-            BABYLON.Animation.CreateAndStartAnimation("moveCamera", 
-                camera, "position", 60, 120, camera.position, startPos, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT, bezierEase);
-                
-            BABYLON.Animation.CreateAndStartAnimation("rotateCamera", 
-                camera, "rotationQuaternion", 60, 120, camera.rotationQuaternion, targetRot, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT, bezierEase);
+            var bezierEase = new BezierCurveEase(0.5, 0, 0.5, 1);
+            Animation.CreateAndStartAnimation("moveCamera",
+                camera, "position", 60, 120, camera.position, startPos, Animation.ANIMATIONLOOPMODE_CONSTANT, bezierEase);
+
+            Animation.CreateAndStartAnimation("rotateCamera",
+                camera, "rotationQuaternion", 60, 120, camera.rotationQuaternion, targetRot, Animation.ANIMATIONLOOPMODE_CONSTANT, bezierEase);
 
             Billboard.startGame = true;
         });
@@ -69,8 +65,7 @@ export class Billboard
         this._root = root
     }
 
-    public getBillBoardMesh() : BABYLON.Mesh
-    {
+    public getBillBoardMesh(): Mesh {
         return this._root;
     }
 }

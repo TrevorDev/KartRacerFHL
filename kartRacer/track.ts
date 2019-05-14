@@ -58,7 +58,7 @@ export class Track {
             ];
         }
 
-        this.createTrack(scene, pathArray, curve.length(), options.width);
+        this.createTrack(scene, pathArray, options.width, curve.length());
 
         const trees = new TransformNode("trees", scene);
         const treePoints = this.getTreePoints(0.9, 1.0, 0.5, pathArray);
