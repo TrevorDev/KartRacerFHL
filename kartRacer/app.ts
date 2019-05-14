@@ -18,7 +18,7 @@ var track = new Track(kartEngine.scene, {
     varianceSeed: 1,
     lateralVariance: 30,
     heightVariance: 20,
-    width: 50,
+    width: 50/2,
 });
 
 const offset = new Vector3(0, 0.5, 0);
@@ -52,8 +52,14 @@ var createBillBoardGUI = (startPos : BABYLON.Vector3, startRotate : BABYLON.Vect
     var root = new BABYLON.Mesh("billboard", kartEngine.scene)
 
     var guiPlane = BABYLON.Mesh.CreatePlane("guiPlane", 6, kartEngine.scene)
-    guiPlane.position.set(0, 10, 10);
+    guiPlane.position.set(0, 10, 10-0.2);
     guiPlane.material = new BABYLON.StandardMaterial("", kartEngine.scene)
+
+    var imagePlane = BABYLON.Mesh.CreatePlane("imagePlane", 5, kartEngine.scene)
+    imagePlane.scaling.x = 1.8
+    imagePlane.position.set(0, 10, 10-0.1);
+    imagePlane.material = new BABYLON.StandardMaterial("", kartEngine.scene);
+    (imagePlane.material as any).diffuseTexture = (imagePlane.material as any).emissiveTexture = new BABYLON.Texture("/public/textures/logo.png", kartEngine.scene);
 
     var mainMenuGUI = GUI.AdvancedDynamicTexture.CreateForMesh(guiPlane);
 
@@ -71,12 +77,12 @@ var createBillBoardGUI = (startPos : BABYLON.Vector3, startRotate : BABYLON.Vect
 
     var billBoardBase = BABYLON.Mesh.CreateBox("base", 1, kartEngine.scene)
     billBoardBase.scaling.y = 10;
-    billBoardBase.position.set(0,5,10.51)
+    billBoardBase.position.set(0,5,10.53)
 
     var billBoardPanel = BABYLON.Mesh.CreateBox("billboardPanel",1, kartEngine.scene)
     billBoardPanel.scaling.x = 12;
     billBoardPanel.scaling.y = 6;
-    billBoardPanel.position.set(0,10,10.51)
+    billBoardPanel.position.set(0,10,10.53)
 
     button1.onPointerUpObservable.add(function() {
         // var a = BABYLON.Mesh.CreateBox("base", 0.1, kartEngine.scene)
