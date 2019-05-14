@@ -15,7 +15,8 @@ export class Kart extends TransformNode {
         super(kartName, scene);
 
         // this is a placeholder so that we actually spawn a Kart on game start.
-        this._mesh = Mesh.CreateBox(kartName + "_mesh", 1, scene);
+        this._mesh = KartEngine.instance.assets.kart.clone();
+        KartEngine.instance.scene.addMesh(this._mesh)
         this._mesh.parent = this;
         this._locallyOwned = locallyOwned;
 
