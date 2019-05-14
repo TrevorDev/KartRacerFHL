@@ -17,11 +17,13 @@ export class Track {
             options.heightVariance
         );
 
-        const points = Curve3.CreateCatmullRomSpline(controlPoints, options.radius, true).getPoints();
+        const curve = Curve3.CreateCatmullRomSpline(controlPoints, options.radius, true);
+        const points = curve.getPoints();
 
         function getPoint(index: number): Vector3 {
-            while (index < 0) index += points.length - 1;
-            while (index >= points.length - 1) index -= points.length - 1;
+            const length = points.length - 1;
+            while (index < 0) index += length;
+            while (index >= length) index -= length;
             return points[index];
         }
 
@@ -57,11 +59,24 @@ export class Track {
         material.roughness = 0.5;
         material.backFaceCulling = false;
         material.twoSidedLighting = true;
-        ribbon.material = material;
 
-        const texture = new Texture("public/textures/SimpleTrack_basecolor.png", scene);
-        texture.vScale = 50;
-        material.albedoTexture = texture;
+        const albedoTexture = new Texture("public/textures/SimpleTrack_basecolor.png", scene);
+        const bumpTexture = new Texture("public/textures/SimpleTrack_normal.png", scene);
+        const roughnessTexture = new Texture("public/textures/SimpleTrack_roughness.png", scene);
+
+        const vScale = Math.round(curve.length() / (options.width * 2));
+        albedoTexture.vScale = vScale;
+        bumpTexture.vScale = vScale;
+        roughnessTexture.vScale = vScale;
+
+        material.albedoTexture = albedoTexture;
+        material.bumpTexture = bumpTexture;
+
+        material.metallic = 0;
+        material.roughness = 1;
+        material.metallicTexture = roughnessTexture;
+
+        ribbon.material = material;
 
         this.startPoint = getPoint(0);
         this.startTarget = getPoint(1);

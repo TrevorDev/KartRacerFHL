@@ -13,12 +13,12 @@ var kartEngine = new KartEngine();
 kartEngine.initializeFullSceenApp();
 
 var track = new Track(kartEngine.scene, {
-    radius: 100,
+    radius: 200,
     numPoints: 16,
-    varianceSeed: 2,
+    varianceSeed: 1,
     lateralVariance: 30,
-    heightVariance: 10,
-    width: 10,
+    heightVariance: 20,
+    width: 50,
 });
 
 const offset = new Vector3(0, 0.5, 0);
@@ -27,7 +27,7 @@ camera.setTarget(track.startTarget.add(offset));
 camera.attachControl(kartEngine.canvas);
 camera.minZ = 0.01;
 camera.maxZ = 1000;
-camera.speed = 1;
+camera.speed = 2;
 
 // var env = kartEngine.scene.createDefaultEnvironment()
 // env.setMainColor(new BABYLON.Color3(0.1, 0.4, 0.6))
