@@ -61,9 +61,7 @@ export class KartEngine {
 
         // we should determine our running platform and setup default controls accordingly here.
         // stubbed to use keyboard input now.
-        console.log("engine - create kart input")
         this.inputSource = new KartInput_Keyboard(this.scene);
-        console.log("engine - notify input source changed.")
         this.OnInputSourceChangedObservable.notifyObservers(this.inputSource);
     }
 }

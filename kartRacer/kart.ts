@@ -2,7 +2,6 @@ import * as BABYLON from 'babylonjs'
 import {IKartInput, KartInput_Keyboard} from 'input'
 import { CameraInputTypes, _BabylonLoaderRegistered, Vector3 } from 'babylonjs';
 import {KartEngine} from './engine'
-import { InputManager } from 'babylonjs/Inputs/scene.inputManager';
 
 export class Kart extends BABYLON.TransformNode {
 
@@ -32,10 +31,9 @@ export class Kart extends BABYLON.TransformNode {
             this.setup3rdPersonKartCamera();
             console.log(this.camera.getClassName());
             scene.onBeforeRenderObservable.add(() => {
-                // stubbed for testing of follow camera.
+                // stubbed for testing Input system.
                 if(this.input){
                     // http://www.html5gamedevs.com/topic/32934-multiply-a-vector3-times-a-quaternion/
-                    console.log("Input:\n" + "Horizontal: " + this.input.horizontal + "\nAccelerate: " + this.input.accelerate + "\nBrake: " + this.input.brake + "\nDrift: " + this.input.drift);
                     // calculate our differential turn for this frame
                     var dTurn = new BABYLON.Vector3(0,this.turnSpeed*this.input.horizontal*scene.getEngine().getDeltaTime()*.001,0);
                     // calculate the resulting rotation after this turn.
