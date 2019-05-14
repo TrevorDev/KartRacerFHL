@@ -12,6 +12,7 @@ import { Assets } from "./assets";
 // Create game engine
 var kartEngine = new KartEngine();
 
+
 var main = async ()=>{
     await kartEngine.initializeFullSceenApp();
 
@@ -19,10 +20,11 @@ var main = async ()=>{
         radius: 200,
         numPoints: 16,
         varianceSeed: 1,
-        lateralVariance: 30,
+        lateralVariance: 50,
         heightVariance: 20,
-        width: 50/2,
+        width: 25,
     });
+
     
     const offset = new Vector3(0, 0.5, 0);
     var camera = new BABYLON.FreeCamera("camera", new Vector3(0, 10, 3), kartEngine.scene);
