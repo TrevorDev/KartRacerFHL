@@ -17,7 +17,9 @@ export class Track {
             options.heightVariance
         );
 
-        const curve = Curve3.CreateCatmullRomSpline(controlPoints, options.radius * 0.05, true);
+        const curvatureFactor = Math.ceil((options.radius + options.lateralVariance + options.heightVariance) * 0.05);
+
+        const curve = Curve3.CreateCatmullRomSpline(controlPoints, curvatureFactor, true);
         const points = curve.getPoints();
 
         function getPoint(index: number): Vector3 {
@@ -31,6 +33,11 @@ export class Track {
             return getPoint(index + 1).subtract(getPoint(index - 1)).normalize();
         }
 
+        function getUp(index: number): Vector3 {
+            const curvatureVector = getPoint(index - curvatureFactor).add(getPoint(index + curvatureFactor)).scaleInPlace(0.5).subtractInPlace(getPoint(index));
+            return curvatureVector.addInPlaceFromFloats(0, curvatureFactor * 10, 0).scaleInPlace(0.5).normalize();
+        }
+
         const apronAngle = Tools.ToRadians(15);
         const apronLengthPrecentage = 0.15;
 
@@ -38,15 +45,16 @@ export class Track {
         for (let index = 0; index < points.length; ++index) {
             const point = points[index];
             const forward = getForward(index);
-            const right = Vector3.Cross(Vector3.Up(), forward);
+            const up = getUp(index);
+            const right = Vector3.Cross(up, forward);
             const edge = right.scale(options.width * (0.5 - apronLengthPrecentage));
             const apron1 = edge.add(right.scale(options.width * apronLengthPrecentage * Math.cos(apronAngle)));
-            const apron2 = Vector3.Up().scale(options.width * apronLengthPrecentage * Math.sin(apronAngle));
+            const apron2 = up.scale(options.width * apronLengthPrecentage * Math.sin(apronAngle));
             pathArray[index] = [
-                point.subtract(apron1).add(apron2),
+                point.subtract(apron1).addInPlace(apron2),
                 point.subtract(edge),
                 point.add(edge),
-                point.add(apron1).add(apron2),
+                point.add(apron1).addInPlace(apron2),
             ];
         }
 
