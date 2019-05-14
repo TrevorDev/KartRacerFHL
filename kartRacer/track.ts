@@ -77,6 +77,13 @@ export class Track {
             pathArray: pathArray
         });
 
+        const goalPoints = this.getGoalMesh(pathArray);
+
+        const goalRibbon = RibbonBuilder.CreateRibbon("goal", {
+            pathArray: goalPoints
+        });
+
+
         const material = new PBRMaterial("track", scene);
         material.metallic = 0;
         material.roughness = 0.5;
@@ -86,6 +93,7 @@ export class Track {
         const albedoTexture = new Texture("public/textures/SimpleTrack_basecolor.png", scene);
         const bumpTexture = new Texture("public/textures/SimpleTrack_normal.png", scene);
         const metallicTexture = new Texture("public/textures/SimpleTrack_ORM.png", scene);
+        const goalTexture = new Texture("public/textures/goal_basecolor.png", scene);
 
         const vScale = Math.round(length / (width * 2));
         albedoTexture.vScale = vScale;
@@ -101,6 +109,16 @@ export class Track {
         material.useMetallnessFromMetallicTextureBlue = true;
         material.useRoughnessFromMetallicTextureGreen = true;
         material.useRoughnessFromMetallicTextureAlpha = false;
+
+        const goalMaterial = new PBRMaterial("goal", scene);
+
+        goalMaterial.metallic = 0;
+        goalMaterial.roughness = 0.5;
+        goalMaterial.backFaceCulling = false;
+        goalMaterial.twoSidedLighting = true;
+
+        goalMaterial.albedoTexture = goalTexture;
+        goalRibbon.material = goalMaterial;
 
         track.material = material;
     }
