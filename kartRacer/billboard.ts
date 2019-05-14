@@ -53,10 +53,10 @@ export class Billboard
 
             var bezierEase = new BABYLON.BezierCurveEase(0.5, 0, 0.5, 1);
             BABYLON.Animation.CreateAndStartAnimation("moveCamera", 
-            camera, "position", 60, 120, camera.position, startPos, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT, bezierEase);
+                camera, "position", 60, 120, camera.position, startPos, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT, bezierEase);
                 
             BABYLON.Animation.CreateAndStartAnimation("rotateCamera", 
-            camera, "rotationQuaternion", 60, 120, camera.rotationQuaternion, targetRot, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT, bezierEase);
+                camera, "rotationQuaternion", 60, 120, camera.rotationQuaternion, targetRot, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT, bezierEase);
 
             Billboard.startGame = true;
         });

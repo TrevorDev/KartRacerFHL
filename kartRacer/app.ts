@@ -12,7 +12,6 @@ import { Assets } from "./assets";
 
 // Create game engine
 var kartEngine = new KartEngine();
-var startGame = false;
 var initMP = false;
 
 
