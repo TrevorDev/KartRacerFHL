@@ -79,8 +79,8 @@ var createBillBoardGUI = (startPos : BABYLON.Vector3, startRotate : BABYLON.Vect
         var bezierEase = new BABYLON.BezierCurveEase(0.5, 0, 0.5, 1);
         BABYLON.Animation.CreateAndStartAnimation("moveCamera", 
             camera, "position", 60, 120, camera.position, startPos, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT, bezierEase);
-        BABYLON.Animation.CreateAndStartAnimation("rotateCamera", 
-        camera, "direction", 60, 120, camera.rotationQuaternion, startRotate, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT, bezierEase);
+        //BABYLON.Animation.CreateAndStartAnimation("rotateCamera", 
+        //camera, "rotation", 60, 120, camera.rotation, startRotate, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT, bezierEase);
     });
 
     // Set elements as children of root
