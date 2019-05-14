@@ -1,6 +1,6 @@
 import { Scene } from "babylonjs/scene";
 import { Vector3, Curve3, RibbonBuilder, PBRMaterial, Texture, Tools, Mesh } from "babylonjs";
-
+import {KartEngine} from "./engine"
 export class Track {
     public readonly startPoint: Vector3;
     public readonly startTarget: Vector3;
@@ -51,8 +51,10 @@ export class Track {
         }
         const trees = this.getTreePoints(.9, 1, .5, pathArray);
         trees.forEach((p, n)=>{
-                    const cube = Mesh.CreateBox("", 0.3, scene);
-                    cube.position.copyFrom(trees[n]);
+            
+                    var cube = KartEngine.instance.assets.tree.clone("clone", null, false);
+                    scene.addMesh(cube as any);
+                    (cube as any).position.copyFrom(trees[n]);
                 })
 
         const ribbon = RibbonBuilder.CreateRibbon("track", {
