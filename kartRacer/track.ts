@@ -105,6 +105,21 @@ export class Track {
         track.material = material;
     }
 
+    private getGoalMesh( pathArray: Array<Array<Vector3>>) : Array<Array<Vector3>>
+    {
+        const percent = .015;
+        const limit =  Math.round(pathArray.length *percent);
+
+        const goalArray = new Array<Array<Vector3>> ();
+
+        for (var index = 0; index < limit; ++index) 
+        {
+            goalArray.push([pathArray[index][1],pathArray[index][2]]);
+        }
+        
+        return goalArray;
+    }
+
     private getTrackPoints(numPoints: number, radius: number, lateralVariance: number, heightVariance: number): Array<Vector3> {
         const points = new Array<Vector3>(numPoints);
         for (let index = 0; index < numPoints; ++index) {
