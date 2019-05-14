@@ -24,6 +24,7 @@ export class Multiplayer{
             }, 300)
 
             socket.on("serverUpdate", (e)=>{
+                console.log("hit")
                 e.forEach((p:any)=>{
                     if(p.id != this.localId){
                         if(!this.trackedServerObjects[p.id]){
