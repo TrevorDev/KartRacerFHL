@@ -1,5 +1,5 @@
 import { KartEngine } from "./engine";
-import { Animation, FreeCamera, Mesh, Vector3, StandardMaterial, BezierCurveEase } from "@babylonjs/core";
+import { Animation, FreeCamera, Mesh, Vector3, StandardMaterial, BezierCurveEase, Texture } from "@babylonjs/core";
 import { AdvancedDynamicTexture, StackPanel, Button } from "@babylonjs/gui";
 
 export class Billboard {
@@ -10,8 +10,14 @@ export class Billboard {
         var root = new Mesh("billboard", kartEngine.scene)
 
         var guiPlane = Mesh.CreatePlane("guiPlane", 6, kartEngine.scene)
-        guiPlane.position.set(0, 10, 10);
+        guiPlane.position.set(0, 10, 10-0.2);
         guiPlane.material = new StandardMaterial("GUI", kartEngine.scene)
+
+        var imagePlane = Mesh.CreatePlane("imagePlane", 5, kartEngine.scene)	
+        imagePlane.scaling.x = 1.8	
+        imagePlane.position.set(0, 10, 10-0.1);	
+        imagePlane.material = new StandardMaterial("", kartEngine.scene);	
+        (imagePlane.material as any).diffuseTexture = (imagePlane.material as any).emissiveTexture = new Texture("/public/textures/logo.png", kartEngine.scene);
 
         var mainMenuGUI = AdvancedDynamicTexture.CreateForMesh(guiPlane);
 
