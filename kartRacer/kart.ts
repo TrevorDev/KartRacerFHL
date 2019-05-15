@@ -58,9 +58,6 @@ export class Kart extends TransformNode {
         if (hit.hit) {
             var normal = hit.getNormal(true, true);
 
-            // TODO: HACK! It seems the normals of the track are weird, or something, not sure what exactly is going on.
-            normal.scaleInPlace(-1.0)
-
             this._filteredUp = Vector3.Lerp(
                 this._filteredUp, 
                 normal, 

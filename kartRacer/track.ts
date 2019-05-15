@@ -1,4 +1,4 @@
-import { Vector3, Curve3, RibbonBuilder, PBRMaterial, Texture, Tools, Scene, TransformNode, MeshBuilder} from "@babylonjs/core";
+import { Vector3, Curve3, RibbonBuilder, PBRMaterial, Texture, Tools, Scene, TransformNode, MeshBuilder } from "@babylonjs/core";
 import { KartEngine } from "./engine";
 
 export class Track {
@@ -51,10 +51,10 @@ export class Track {
             const apron1 = edge.add(right.scale(options.width * apronLengthPrecentage * Math.cos(apronAngle)));
             const apron2 = up.scale(options.width * apronLengthPrecentage * Math.sin(apronAngle));
             pathArray[index] = [
-                point.subtract(apron1).addInPlace(apron2),
-                point.subtract(edge),
-                point.add(edge),
                 point.add(apron1).addInPlace(apron2),
+                point.add(edge),
+                point.subtract(edge),
+                point.subtract(apron1).addInPlace(apron2),
             ];
         }
 
@@ -71,8 +71,9 @@ export class Track {
         const hazards = new TransformNode("hazards", scene);
         const hazardPoints = this.getHazardPoints(2, .1, 1.0, 0.5, pathArray);
         for (const hazardPoint of hazardPoints) {
-            var cube = MeshBuilder.CreateBox("hazard", {size: 0.3}, scene);
-            cube.position.copyFrom(hazardPoint)
+            const hazard = MeshBuilder.CreateBox("hazard", { size: 0.3 }, scene);
+            hazard.position.copyFrom(hazardPoint);
+            hazard.parent = hazards;
         }
 
         this.startPoint = getPoint(0);
@@ -130,39 +131,34 @@ export class Track {
         track.material = material;
     }
 
-    private getHazardPoints(height:number, density: number, radius: number, minDistance: number, pathArray: Array<Array<Vector3>>): Array<Vector3>
-    {
+    private getHazardPoints(height: number, density: number, radius: number, minDistance: number, pathArray: Array<Array<Vector3>>): Array<Vector3> {
         const hazardPoints = new Array<Vector3>();
-        const percentageDistanceFromSides = .1; 
-        for (var index = 0; index < pathArray.length; ++index) 
-        {
-             const leftSide = pathArray[index][1];
-             const rightSide = pathArray[index][2];
+        const percentageDistanceFromSides = .1;
+        for (var index = 0; index < pathArray.length; ++index) {
+            const leftSide = pathArray[index][1];
+            const rightSide = pathArray[index][2];
 
-             const direction = rightSide.subtract(leftSide);
-             if (this.random() < density) 
-             {
-                const distance = ( this.random() *  (1-percentageDistanceFromSides*2) + percentageDistanceFromSides);
+            const direction = rightSide.subtract(leftSide);
+            if (this.random() < density) {
+                const distance = (this.random() * (1 - percentageDistanceFromSides * 2) + percentageDistanceFromSides);
                 const positionHazard = leftSide.add(direction.scale(distance));
                 positionHazard.y += height;
                 hazardPoints.push(positionHazard);
-             }
+            }
         }
         return hazardPoints;
     }
 
-    private getGoalMesh( pathArray: Array<Array<Vector3>>) : Array<Array<Vector3>>
-    {
+    private getGoalMesh(pathArray: Array<Array<Vector3>>): Array<Array<Vector3>> {
         const percent = .015;
-        const limit =  Math.round(pathArray.length *percent);
+        const limit = Math.round(pathArray.length * percent);
 
-        const goalArray = new Array<Array<Vector3>> ();
+        const goalArray = new Array<Array<Vector3>>();
 
-        for (var index = 0; index < limit; ++index) 
-        {
-            goalArray.push([pathArray[index][1],pathArray[index][2]]);
+        for (var index = 0; index < limit; ++index) {
+            goalArray.push([pathArray[index][1], pathArray[index][2]]);
         }
-        
+
         return goalArray;
     }
 
