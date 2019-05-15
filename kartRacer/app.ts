@@ -5,6 +5,7 @@ import { Vector3, Quaternion, FreeCamera } from "@babylonjs/core";
 import { Multiplayer } from "./multiplayer";
 import { Billboard } from "./billboard";
 import { Menu } from './menu';
+import { Skybox } from './skybox';
 
 // Create game engine
 var kartEngine = new KartEngine();
@@ -22,6 +23,7 @@ var main = async () => {
         heightVariance: 20,
         width: 25,
     });
+    var skybox = new Skybox(kartEngine.scene);
 
     const offset = new Vector3(0, 0.5, 0);
     var camera = new FreeCamera("camera", new Vector3(0, 10, 3), kartEngine.scene);
