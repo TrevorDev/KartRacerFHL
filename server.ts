@@ -3,7 +3,7 @@ import * as http from "http"
 import * as sio from "socket.io";
 
 var port = 3000;
-var pingMS = 300;
+var pingMS = 10;
 
 // Basic express webserver
 var app = express()
@@ -28,7 +28,7 @@ io.on('connection', function(socket:(sio.Socket & {customData:any})){
         }
         socket.customData.roomName = e.roomName;
         rooms[socket.customData.roomName].users.push(socket)
-        socket.emit("joinRoomComplete", {id: socket.id})
+        socket.emit("joinRoomComplete", {id: socket.id, pingMS: pingMS})
     })
     socket.on("updateKartPose", (pose)=>{
         socket.customData.position.x = pose.position.x
