@@ -1,4 +1,4 @@
-import { Vector3, Curve3, RibbonBuilder, PBRMaterial, Texture, Tools, Scene, TransformNode } from "@babylonjs/core";
+import { Vector3, Curve3, RibbonBuilder, PBRMaterial, Texture, Tools, Scene, TransformNode, MeshBuilder} from "@babylonjs/core";
 import { KartEngine } from "./engine";
 
 export class Track {
@@ -68,6 +68,13 @@ export class Track {
             tree.parent = trees;
         }
 
+        const hazards = new TransformNode("hazards", scene);
+        const hazardPoints = this.getHazardPoints(2, .1, 1.0, 0.5, pathArray);
+        for (const hazardPoint of hazardPoints) {
+            var cube = MeshBuilder.CreateBox("hazard", {size: 0.3}, scene);
+            cube.position.copyFrom(hazardPoint)
+        }
+
         this.startPoint = getPoint(0);
         this.startTarget = getPoint(1);
     }
@@ -121,6 +128,27 @@ export class Track {
         goalRibbon.material = goalMaterial;
 
         track.material = material;
+    }
+
+    private getHazardPoints(height:number, density: number, radius: number, minDistance: number, pathArray: Array<Array<Vector3>>): Array<Vector3>
+    {
+        const hazardPoints = new Array<Vector3>();
+        const percentageDistanceFromSides = .1; 
+        for (var index = 0; index < pathArray.length; ++index) 
+        {
+             const leftSide = pathArray[index][1];
+             const rightSide = pathArray[index][2];
+
+             const direction = rightSide.subtract(leftSide);
+             if (this.random() < density) 
+             {
+                const distance = ( this.random() *  (1-percentageDistanceFromSides*2) + percentageDistanceFromSides);
+                const positionHazard = leftSide.add(direction.scale(distance));
+                positionHazard.y += height;
+                hazardPoints.push(positionHazard);
+             }
+        }
+        return hazardPoints;
     }
 
     private getGoalMesh( pathArray: Array<Array<Vector3>>) : Array<Array<Vector3>>
