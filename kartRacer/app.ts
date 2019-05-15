@@ -1,3 +1,4 @@
+import { Kart } from './kart';
 import { KartEngine } from "./engine";
 import { Track } from './track';
 import { Vector3, Quaternion, FreeCamera } from "@babylonjs/core";
@@ -44,7 +45,11 @@ var main = async () => {
     kartEngine.scene.onBeforeRenderObservable.add(() => {
         if (Billboard.startGame && !initMP) {
             // Initialize Multiplayer
-            multiplayer.connectToRoom("testRoom");
+
+            kartEngine.kart.activateKartCamera();
+            kartEngine.kart.position = startingPosition;
+
+            multiplayer.connectToRoom("testRoom", kartEngine.kart);
             multiplayer.trackedObject = camera;
 
             initMP = true;

@@ -12,12 +12,12 @@ export class Multiplayer {
     constructor(public scene: Scene) {
     }
 
-    connectToRoom(roomName: string) {
+    connectToRoom(roomName: string, trackedObject: Nullable<{ position: Vector3, rotationQuaternion: Quaternion }>) {
         var socket: SocketIO.Socket = io();
         socket.emit("joinRoom", { roomName: "test" });
         socket.on("joinRoomComplete", (e) => {
             this.localId = e.id;
-            this.trackedObject = new Kart(this.localId, this.scene, true);
+            this.trackedObject = trackedObject;
             this.repeat(() => {
                 if (this.trackedObject) {
                     socket.emit("updateKartPose", { position: this.trackedObject.position, rotation: this.trackedObject.rotationQuaternion })
