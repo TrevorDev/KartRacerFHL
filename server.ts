@@ -3,7 +3,7 @@ import * as http from "http"
 import * as sio from "socket.io";
 
 var port = 3000;
-var pingMS = 10;
+var pingMS = 100;
 
 // Basic express webserver
 var app = express()
