@@ -63,7 +63,7 @@ export class Track {
         const trees = new TransformNode("trees", scene);
         const treePoints = this.getTreePoints(0.9, 1.0, 0.5, pathArray);
         for (const treePoint of treePoints) {
-            const tree = KartEngine.instance.assets.tree.createInstance("tree");
+            const tree = KartEngine.instance.assets.tree.clone("tree");
             tree.position.copyFrom(treePoint);
             tree.parent = trees;
         }
