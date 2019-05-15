@@ -1,3 +1,4 @@
+import { Kart } from './kart';
 import { IKartInput, KartInput_Keyboard } from "./input";
 import { Assets } from "./assets";
 import { Scene, Observable, Engine, FreeCamera, Vector3 } from "@babylonjs/core";
@@ -11,6 +12,7 @@ export class KartEngine {
     public canvas: HTMLCanvasElement;
     public readonly assets = new Assets();
 
+    public kart: Kart;
     public inputSource: IKartInput;
     public onInputSourceChangedObservable = new Observable<IKartInput>();
 
@@ -70,6 +72,8 @@ export class KartEngine {
 
         const camera = new FreeCamera("camera", new Vector3(0, 10, 3), this.scene);
         await this.assets.loadAssets();
+        
+        this.kart = new Kart("player_kart", this.scene, true);
 
         // .then(()=>{
         //     var c = assets.kart.clone("clone", null, false);
