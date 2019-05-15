@@ -17,6 +17,10 @@ export class Kart extends TransformNode {
     private static readonly VELOCITY_DECAY_SCALAR: number = 2.0;
     private static readonly TURN_DECAY_SCALAR: number = 5.0;
     private static readonly BRAKE_SCALAR: number = 3.0;
+    private static readonly SLOW_DURATION: number = 5500;
+
+
+
 
     private _velocity: Vector3 = Vector3.Zero();
     private _relocity: number = 0.0;
@@ -26,6 +30,9 @@ export class Kart extends TransformNode {
     private _lastSafePosition: Vector3 = Vector3.Zero();
     private _lastSafeFilteredUp: Vector3 = Vector3.Zero();
     private _turnFactor: number = 0.0;
+    private _lastHazard: number = -1;
+    private _bombHitTime: number = 0;
+    private _velocityFactor: number = 1;
 
     constructor(kartName: string, scene: Scene, locallyOwned: boolean = true) {
         super(kartName, scene);
@@ -93,6 +100,35 @@ export class Kart extends TransformNode {
         var forward = Vector3.Cross(this.right, this._filteredUp);
         var right = Vector3.Cross(this._filteredUp, forward);
         this.rotationQuaternion = Quaternion.RotationQuaternionFromAxis(right, this._filteredUp, forward);
+        const hazardId = this.checkBombCollision();
+        if (hazardId != -1 && hazardId != this._lastHazard)
+        {
+            this._velocity.set(0.0, 0.0, 0.0);
+            this._lastHazard = hazardId;
+            this._bombHitTime = (new Date).getTime();
+            this._velocityFactor = 0.5;
+        }
+
+    }
+
+    private checkBombCollision(): number
+    {
+        const radiusCollision = 2;
+        const hazards = (KartEngine.instance.scene as any).getTransformNodeByName("hazards");
+        console.log(hazards)
+        const bombs = hazards.getChildMeshes();
+
+        for (var index = 0; index < bombs.length; ++index) 
+        {
+            const position = bombs[index].position;
+            const distance = this.position.subtract(position).length();
+            if (distance < radiusCollision)
+            {
+                return index;
+            }
+        }
+        return -1;
+        
     }
 
     private getForward(): number {
@@ -129,7 +165,7 @@ export class Kart extends TransformNode {
 
         this.rotateAround(this.position, this.up, this._relocity);
 
-        this._velocity.addInPlace(this.forward.scale(this.getForward() * Kart.FORWARD_VELOCITY_SCALAR * this._deltaTime));
+        this._velocity.addInPlace(this.forward.scale(this.getForward() * Kart.FORWARD_VELOCITY_SCALAR * this._velocityFactor * this._deltaTime));
 
         this._velocity.subtractInPlace(this.forward.scale(this.getBack() * this._deltaTime));
 
@@ -138,7 +174,13 @@ export class Kart extends TransformNode {
 
     private beforeRenderUpdate(): void {
         this._deltaTime = Engine.Instances[0].getDeltaTime() / 1000.0;
-    
+        
+        if (this._velocityFactor < 1 && (new Date).getTime() - this._bombHitTime > Kart.SLOW_DURATION)
+        {
+            this._velocityFactor = 1;
+        }
+
+
         this.updateFromPhysics();
         this.updateFromControls();
         
