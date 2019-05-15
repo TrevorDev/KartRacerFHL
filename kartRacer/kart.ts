@@ -27,6 +27,7 @@ export class Kart extends TransformNode {
     private _lastSafePosition: Vector3 = Vector3.Zero();
     private _lastSafeFilteredUp: Vector3 = Vector3.Zero();
     private _turnFactor: number = 0.0;
+    private _kartName : string = "";
 
     constructor(kartName: string, scene: Scene, locallyOwned: boolean = true) {
         super(kartName, scene);
@@ -72,6 +73,8 @@ export class Kart extends TransformNode {
         stackPanel.addControl(nameText);
         namePlane.position.set(0,1,0);
         namePlane.parent = this;
+
+        this._kartName = name;
     }
 
     private updateFromPhysics(): void {
