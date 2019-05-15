@@ -59,7 +59,7 @@ var main = async () => {
             initMP = true;
             menu = new Menu(camera, kartEngine.scene);
             menu.EnableHud();
-
+            kartEngine.kart.assignKartName(billboard.getRacerName());
             menu.StartTimer();
         }
         else if (Billboard.startGame && initMP) {

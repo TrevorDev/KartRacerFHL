@@ -1,5 +1,5 @@
-import { FreeCamera, Scene, Mesh, StandardMaterial, Vector3 } from "@babylonjs/core";
-import { PlanePanel, AdvancedDynamicTexture, TextBlock, StackPanel } from "@babylonjs/gui";
+import { FreeCamera, Scene, Mesh, StandardMaterial } from "@babylonjs/core";
+import { AdvancedDynamicTexture, TextBlock, StackPanel } from "@babylonjs/gui";
 
 export class Menu {
     private _camera : FreeCamera;
@@ -10,17 +10,20 @@ export class Menu {
 
     constructor (camera : FreeCamera, scene : Scene)
     {
-        var hudPlane = Mesh.CreatePlane("hudPlane", 4, scene)
+        var hudPlane = Mesh.CreatePlane("hudPlane", 4.5, scene)
         hudPlane.material = new StandardMaterial("", scene)
 
         var driverUI = AdvancedDynamicTexture.CreateForMesh(hudPlane);
 
         var stackPanel = new StackPanel();
         stackPanel.height = "1000px";
+        stackPanel.width = "100%";
         driverUI.addControl(stackPanel);
 
         var timeText = new TextBlock();
         timeText.height = "150px";
+        timeText.width = "100%";
+        timeText.textHorizontalAlignment = TextBlock.HORIZONTAL_ALIGNMENT_RIGHT;
         timeText.fontSize = 40;
         timeText.color = "white"
         timeText.text = "TIME: 00:00:00";
@@ -29,6 +32,7 @@ export class Menu {
 
         var scoreText = new TextBlock();
         scoreText.height = "500px";
+        scoreText.left = "100px";
         scoreText.fontSize = 25;
         scoreText.color = "white"
         scoreText.textWrapping = true;

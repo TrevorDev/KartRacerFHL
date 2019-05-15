@@ -1,6 +1,7 @@
 import { IKartInput } from "./input";
 import { KartEngine } from "./engine";
-import { Engine, Mesh, Scene, Vector3, Ray, Quaternion, Matrix, FreeCamera, TransformNode, Camera } from "@babylonjs/core";
+import { Engine, Mesh, Scene, Vector3, Ray, Quaternion, FreeCamera, TransformNode, StandardMaterial } from "@babylonjs/core";
+import { AdvancedDynamicTexture, StackPanel, TextBlock } from "@babylonjs/gui";
 
 export class Kart extends TransformNode {
     private _mesh: Mesh;
@@ -50,6 +51,27 @@ export class Kart extends TransformNode {
         });
 
         return this._camera;
+    }
+
+    public assignKartName(name : string): void {
+        var namePlane = Mesh.CreatePlane("namePlane", 2, this._scene);
+        namePlane.material = new StandardMaterial("", this._scene)
+
+        var nameMesh = AdvancedDynamicTexture.CreateForMesh(namePlane);
+        var stackPanel = new StackPanel();
+        stackPanel.height = "100%";
+        nameMesh.addControl(stackPanel);
+
+        var nameText = new TextBlock();
+        nameText.height = "100%";
+        nameText.textVerticalAlignment = TextBlock.VERTICAL_ALIGNMENT_TOP;
+        nameText.fontSize = 160;
+        nameText.color = "white"
+        nameText.text = name;
+        nameText.textWrapping = true;
+        stackPanel.addControl(nameText);
+        namePlane.position.set(0,1,0);
+        namePlane.parent = this;
     }
 
     private updateFromPhysics(): void {
