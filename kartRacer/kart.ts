@@ -41,13 +41,15 @@ export class Kart extends TransformNode {
         }
     }
 
-    public activateKartCamera(): void {
+    public activateKartCamera(): FreeCamera {
         this.setup3rdPersonKartCamera();
 
         this._scene.registerBeforeRender(() =>
         {
             this.beforeRenderUpdate();
         });
+
+        return this._camera;
     }
 
     private updateFromPhysics(): void {
