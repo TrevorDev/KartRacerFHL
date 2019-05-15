@@ -4,11 +4,13 @@ import { Track } from './track';
 import { Vector3, Quaternion, FreeCamera } from "@babylonjs/core";
 import { Multiplayer } from "./multiplayer";
 import { Billboard } from "./billboard";
+import { Menu } from './menu';
 import { Skybox } from './skybox';
 
 // Create game engine
 var kartEngine = new KartEngine();
 var initMP = false;
+var menu : Menu = null;
 
 var main = async () => {
     await kartEngine.initializeFullSceenApp();
@@ -48,16 +50,21 @@ var main = async () => {
         if (Billboard.startGame && !initMP) {
             // Initialize Multiplayer
 
-            kartEngine.kart.activateKartCamera();
+            let camera = kartEngine.kart.activateKartCamera();
             kartEngine.kart.position = startingPosition;
 
             multiplayer.connectToRoom("testRoom", kartEngine.kart);
             multiplayer.trackedObject = camera;
 
             initMP = true;
+            menu = new Menu(camera, kartEngine.scene);
+            menu.EnableHud();
+
+            menu.StartTimer();
         }
         else if (Billboard.startGame && initMP) {
             multiplayer.update();
+            menu.UpdateHUD();
         }
     })
 }
