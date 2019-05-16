@@ -25,7 +25,7 @@ var main = async () => {
     });
     var skybox = new Skybox(kartEngine.scene);
 
-    const offset = new Vector3(0, 1, 0);
+    const offset = new Vector3(0, 4, 0);
     var camera = new FreeCamera("camera", new Vector3(0, 10, 3), kartEngine.scene);
     camera.rotationQuaternion = new Quaternion();
     kartEngine.scene.activeCamera = camera;
