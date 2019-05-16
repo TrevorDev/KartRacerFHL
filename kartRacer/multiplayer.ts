@@ -22,7 +22,7 @@ export class Multiplayer {
                 if (this.trackedObject) {
                     socket.emit("updateKartPose", { position: this.trackedObject.position, rotation: this.trackedObject.rotationQuaternion })
                 }
-            }, 300)
+            }, e.pingMS)
 
             socket.on("serverUpdate", (e) => {
                 console.log("hit")

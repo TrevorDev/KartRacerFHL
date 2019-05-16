@@ -4,6 +4,7 @@ import "@babylonjs/loaders/glTF";
 export class Assets {
     public kart: Mesh;
     public tree: Mesh;
+    public bomb: Mesh;
 
     async loadAssets() {
         const kartContainer = await SceneLoader.LoadAssetContainerAsync("/public/models/roadsterKart.gltf");
@@ -18,6 +19,13 @@ export class Assets {
         this.tree = treeContainer.meshes[0] as Mesh;
         this.tree.isPickable = false;
         this.tree.getChildMeshes(false).forEach(child => {
+            child.isPickable = false;
+        });
+
+        const bombContainer = await SceneLoader.LoadAssetContainerAsync("/public/models/bomb.glb");
+        this.bomb = bombContainer.meshes[0] as Mesh;
+        this.bomb.isPickable = false;
+        this.bomb.getChildMeshes(false).forEach(child => {
             child.isPickable = false;
         });
     }

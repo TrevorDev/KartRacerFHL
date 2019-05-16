@@ -1,5 +1,6 @@
 // https://webpack.js.org/guides/typescript/
 
+const NodemonPlugin = require('nodemon-webpack-plugin');
 const nodeExternals = require('webpack-node-externals');
 const path = require('path');
 
@@ -25,7 +26,12 @@ module.exports = [
     output: {
       filename: 'server.js',
       path: path.resolve(__dirname, 'dist')
-    }
+    },
+    plugins: [
+      new NodemonPlugin({
+        script: './dist/server.js'
+      })
+    ]
   },
   {
     mode: 'development',
