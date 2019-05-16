@@ -1,5 +1,5 @@
 import { Kart } from './kart';
-import { IKartInput, KartInput_Keyboard } from "./input";
+import { IKartInput, KartInput_KeyboardAndTouch } from "./input";
 import { Assets } from "./assets";
 import { Scene, Observable, Engine, FreeCamera, Vector3 } from "@babylonjs/core";
 
@@ -67,7 +67,7 @@ export class KartEngine {
 
         // we should determine our running platform and setup default controls accordingly here.
         // stubbed to use keyboard input now.
-        this.inputSource = new KartInput_Keyboard(this.scene);
+        this.inputSource = new KartInput_KeyboardAndTouch(this.scene);
         this.onInputSourceChangedObservable.notifyObservers(this.inputSource);
 
         const camera = new FreeCamera("camera", new Vector3(0, 10, 3), this.scene);
