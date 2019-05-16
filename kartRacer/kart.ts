@@ -336,7 +336,7 @@ export class Kart extends TransformNode {
         this._velocity.scaleInPlace(1.0 - (Kart.VELOCITY_DECAY_SCALAR * this._deltaTime));
         this._relocity *= (1.0 - (Kart.TURN_DECAY_SCALAR * this._deltaTime));
     
-        this.position.addInPlace(this._velocity);
+        this.position.addInPlace(this._velocity.scale(this._deltaTime*60));
     }
 
     private setup3rdPersonKartCamera() {
