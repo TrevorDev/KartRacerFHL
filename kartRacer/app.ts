@@ -47,12 +47,10 @@ var main = async () => {
         let checkpoints : Vector3[] = track.trackPoints.slice(2,track.trackPoints.length); 
         checkpoints[track.trackPoints.length - 2] = track.trackPoints[1];
 
-        kartEngine.kart.initializeTrackProgress(checkpoints, startingPosition);
+        kartEngine.kart.initializeTrackProgress(checkpoints, startingPosition, startingRotation);
 
         let camera = kartEngine.kart.activateKartCamera();
-        kartEngine.kart.position = startingPosition;
-        kartEngine.kart.lookAt(startingRotation);
-        kartEngine.kart.computeWorldMatrix();
+        kartEngine.kart.reset();
 
         // Initialize Multiplayer
         multiplayer.connectToRoom("testRoom", kartEngine.kart);
