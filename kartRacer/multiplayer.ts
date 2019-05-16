@@ -65,7 +65,6 @@ export class Multiplayer {
     public update() {
         var curTime = new Date()
         var ratio = Scalar.Clamp((curTime.getTime() - this.lastTime.getTime())/this.pingMS, 0, 1.1)
-        console.log(ratio)
         for (var key in this.trackedServerObjects) {
             
 
