@@ -41,7 +41,7 @@ export class KartInput_KeyboardAndTouch implements IKartInput {
 
         // Brake
         this.brake = 0;
-        if (this._keymap["s"] || this._keymap["S"] || this._keymap["ArrowDown"]) {
+        if (this._keymap["s"] || this._keymap["S"] || this._keymap["ArrowDown"] || this._keymap[" "]) {
             this.brake = 1;
         };
 
