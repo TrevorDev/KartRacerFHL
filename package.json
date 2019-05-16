@@ -4,25 +4,29 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "concurrently \"webpack -w --mode=development\" \"nodemon dist/server.js\""
+    "start": "webpack --watch --mode=development --info-verbosity=verbose"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@types/express": "^4.16.1",
-    "@types/socket.io": "^2.1.2",
     "express": "^4.16.4",
     "glob": "^7.1.4",
-    "pug": "^2.0.3",
-    "socket.io": "^2.2.0",
-    "ts-loader": "^6.0.0",
-    "typescript": "^3.4.5",
-    "webpack-node-externals": "^1.7.2"
+    "socket.io": "^2.2.0"
   },
   "devDependencies": {
     "@babylonjs/core": "^4.0.3",
-    "@babylonjs/loaders": "^4.0.3",
     "@babylonjs/gui": "^4.0.3",
-    "@babylonjs/inspector": "^4.0.3"
+    "@babylonjs/inspector": "^4.0.3",
+    "@babylonjs/loaders": "^4.0.3",
+    "@types/express": "^4.16.1",
+    "@types/socket.io": "^2.1.2",
+    "acorn": "^6.1.1",
+    "nodemon": "^1.19.0",
+    "nodemon-webpack-plugin": "^4.0.8",
+    "ts-loader": "^6.0.0",
+    "typescript": "^3.4.5",
+    "webpack": "^4.31.0",
+    "webpack-cli": "^3.3.2",
+    "webpack-node-externals": "^1.7.2"
   }
 }
