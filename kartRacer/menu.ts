@@ -8,6 +8,7 @@ export class Menu {
     private _scoreText : TextBlock = null;
     private _startTime : number = null;
     private _stopTimer : boolean = false;
+    private _time : number;
 
     constructor (camera : FreeCamera, scene : Scene)
     {
@@ -57,15 +58,9 @@ export class Menu {
         if (this._startTime != null && !this._stopTimer)
         {
             let time = Math.floor((new Date().getTime() - this._startTime) / 1000);
-            let hours = Math.floor(time / 3600);
-            time %= 3600;
-            let minutes = Math.floor(time / 60);
-            let seconds = time % 60;
-            var hoursString : string = (hours < 10 ? "0" : "") + hours
-            var minutesString : string = (minutes < 10 ? "0" : "") + minutes
-            var secondsString : string = (seconds < 10 ? "0" : "") + seconds
 
-            this._timeText.text = "TIME: " + hoursString + ":" + minutesString + ":" + secondsString;
+            this._time = time;
+            this._timeText.text = "TIME: " + this.FormatTime(time);
             this._scoreText.text = prog + "% Complete";
         }
     }
@@ -80,8 +75,23 @@ export class Menu {
     {
         this._startTime = new Date().getTime();
     }
-    public StopTimer() : void
+    public StopTimer() : string
     {
         this._stopTimer = true;
+        
+        return this.FormatTime(this._time);
+    }
+
+    private FormatTime(time : number) : string
+    {
+        let hours = Math.floor(time / 3600);
+        time %= 3600;
+        let minutes = Math.floor(time / 60);
+        let seconds = time % 60;
+        var hoursString : string = (hours < 10 ? "0" : "") + hours;
+        var minutesString : string = (minutes < 10 ? "0" : "") + minutes;
+        var secondsString : string = (seconds < 10 ? "0" : "") + seconds;
+
+        return (hoursString + ":" + minutesString + ":" + secondsString);
     }
 }
