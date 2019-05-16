@@ -106,7 +106,7 @@ export class Track {
                 boost.position.copyFrom(hazardPoint);
                 boost.parent = boostHazards;
             }
-            else if (hazardType < 1) {
+            else if (hazardType < .75) {
                 const bumper = KartEngine.instance.assets.bumper.createInstance("bumper");
                 bumper.scaling.scaleInPlace(hazardScale);
                 const rotationY = this.random() * Scalar.TwoPi;

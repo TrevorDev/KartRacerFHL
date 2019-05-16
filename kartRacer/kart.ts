@@ -19,7 +19,8 @@ export class Kart extends TransformNode {
     private static readonly VELOCITY_DECAY_SCALAR: number = 2.0;
     private static readonly TURN_DECAY_SCALAR: number = 5.0;
     private static readonly BRAKE_SCALAR: number = 3.0;
-    private static readonly SLOW_DURATION: number = 2000;
+    private static readonly SLOW_DURATION: number = 3000;
+    private static readonly BOMB_DURATION: number = 2000;
     private static readonly BOOST_DURATION: number = 1000;
 
     private _velocity: Vector3 = Vector3.Zero();
@@ -38,6 +39,8 @@ export class Kart extends TransformNode {
     private _checkpoints: Set<Vector3> = new Set<Vector3>();
     private _totalCheckpoints: number = 0;
     private _boostHitTime: number = 0;
+    private _slowHitTime: number = 0;
+    private _state: string = "ok";
 
     public TrackTime : string = "";
 
@@ -157,13 +160,13 @@ export class Kart extends TransformNode {
         var right = Vector3.Cross(this._filteredUp, forward);
         this.rotationQuaternion = Quaternion.RotationQuaternionFromAxis(right, this._filteredUp, forward);
         let collisionId = this.checkHazardCollision("bombs");
-        
         if (collisionId != -1 && collisionId != this._lastHazard)
         {
             this._velocity.set(0.0, 1.2, 0.0);
             this._lastHazard = collisionId;
             this._bombHitTime = (new Date).getTime();
             this._velocityFactor = 0.5;
+            this._state = "exploded";
         }
 
         collisionId = this.checkHazardCollision("boosts"); 
@@ -172,6 +175,7 @@ export class Kart extends TransformNode {
             this._lastHazard = collisionId;
             this._boostHitTime = (new Date).getTime();
             this._velocityFactor = 1.6;
+            this._state = "fast";
         }
 
         collisionId = this.checkHazardCollision("bumpers"); 
@@ -202,6 +206,16 @@ export class Kart extends TransformNode {
             
             this._lastHazard = collisionId;
         }
+        collisionId = this.checkHazardCollision("poison"); 
+        if (collisionId != -1 && collisionId != this._lastHazard)
+        {
+            this._velocity.set(0.0, 0.0, 0.0);
+            this._lastHazard = collisionId;
+            this._slowHitTime = (new Date).getTime();
+            this._velocityFactor = 0.1;
+            this._state = "slow";
+        }
+
 
     }
 
@@ -303,21 +317,18 @@ export class Kart extends TransformNode {
     private beforeRenderUpdate(): void {
         this._deltaTime = Engine.Instances[0].getDeltaTime() / 1000.0;
         
-        if (this._velocityFactor < 1 && (new Date).getTime() - this._bombHitTime > Kart.SLOW_DURATION)
+        if ((this._state == "exploded" && (new Date).getTime() - this._bombHitTime > Kart.BOMB_DURATION)
+        || (this._state == "fast" && (new Date).getTime() - this._boostHitTime > Kart.BOOST_DURATION)
+        || (this._state == "slow" && (new Date).getTime() - this._slowHitTime > Kart.SLOW_DURATION))
         {
             this._velocityFactor = 1;
+            this._state = "ok";
         }
 
-        this.updateFromTrackProgress();
-
-        if (this._velocityFactor > 1 && (new Date).getTime() - this._boostHitTime > Kart.BOOST_DURATION)
-        {
-            this._velocityFactor = 1;
-        }
-      
+        this.updateFromTrackProgress();      
         this.updateFromPhysics();
 
-        if (this._velocityFactor >= 1 )
+        if (this._state != "exploded")
         {
             this.updateFromControls();
         }
