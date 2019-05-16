@@ -1,4 +1,4 @@
-import { Vector3, Curve3, RibbonBuilder, PBRMaterial, Texture, Tools, Scene, TransformNode, MeshBuilder } from "@babylonjs/core";
+import { Vector3, Curve3, RibbonBuilder, PBRMaterial, Texture, Tools, Scene, TransformNode, Mesh, Scalar } from "@babylonjs/core";
 import { KartEngine } from "./engine";
 
 export class Track {
@@ -60,27 +60,28 @@ export class Track {
             ];
         }
 
-        this.createTrack(scene, pathArray, options.width, curve.length());
+        const track = this.createTrack(scene, pathArray, options.width, curve.length());
+        this.createGoal(scene, pathArray);
 
         const trees = new TransformNode("trees", scene);
+        trees.parent = track;
         const treePoints = this.getTreePoints(0.9, 1.0, 0.5, pathArray);
         for (const treePoint of treePoints) {
-            const tree = KartEngine.instance.assets.tree.clone("tree");
+            const tree = KartEngine.instance.assets.tree.createInstance("tree");
             tree.position.copyFrom(treePoint);
             tree.parent = trees;
         }
 
         const hazards = new TransformNode("hazards", scene);
+        hazards.parent = track;
         const hazardPoints = this.getHazardPoints(2, .1, 1.0, 0.5, pathArray);
         const bombScale = 4;
         for (const hazardPoint of hazardPoints) {
-            //const hazard = MeshBuilder.CreateBox("hazard", { size: 0.3 }, scene);
-
-            var bomb = KartEngine.instance.assets.bomb.clone("bomb");
-            bomb.scaling = new Vector3(bombScale,bombScale,bombScale);
-            const rotationY = this.random()*2*Math.PI;
-            bomb.addRotation(0,rotationY, 0);
-            bomb.position.copyFrom(hazardPoint)
+            const bomb = KartEngine.instance.assets.bomb.createInstance("bomb");
+            bomb.scaling.scaleInPlace(bombScale);
+            const rotationY = this.random() * Scalar.TwoPi;
+            bomb.addRotation(0, rotationY, 0);
+            bomb.position.copyFrom(hazardPoint);
             bomb.parent = hazards;
         }
 
@@ -88,17 +89,10 @@ export class Track {
         this.startTarget = getPoint(1);
     }
 
-    private createTrack(scene: Scene, pathArray: Array<Array<Vector3>>, width: number, length: number): void {
+    private createTrack(scene: Scene, pathArray: Array<Array<Vector3>>, width: number, length: number): Mesh {
         const track = RibbonBuilder.CreateRibbon("track", {
             pathArray: pathArray
         });
-
-        const goalPoints = this.getGoalMesh(pathArray);
-
-        const goalRibbon = RibbonBuilder.CreateRibbon("goal", {
-            pathArray: goalPoints
-        });
-
 
         const material = new PBRMaterial("track", scene);
         material.metallic = 0;
@@ -109,7 +103,6 @@ export class Track {
         const albedoTexture = new Texture("public/textures/SimpleTrack_basecolor.png", scene);
         const bumpTexture = new Texture("public/textures/SimpleTrack_normal.png", scene);
         const metallicTexture = new Texture("public/textures/SimpleTrack_ORM.png", scene);
-        const goalTexture = new Texture("public/textures/goal_basecolor.png", scene);
 
         const vScale = Math.round(length / (width * 2));
         albedoTexture.vScale = vScale;
@@ -126,17 +119,33 @@ export class Track {
         material.useRoughnessFromMetallicTextureGreen = true;
         material.useRoughnessFromMetallicTextureAlpha = false;
 
-        const goalMaterial = new PBRMaterial("goal", scene);
-
-        goalMaterial.metallic = 0;
-        goalMaterial.roughness = 0.5;
-        goalMaterial.backFaceCulling = false;
-        goalMaterial.twoSidedLighting = true;
-
-        goalMaterial.albedoTexture = goalTexture;
-        goalRibbon.material = goalMaterial;
-
         track.material = material;
+
+        return track;
+    }
+
+    private createGoal(scene: Scene, trackPathArray: Array<Array<Vector3>>): void {
+        const percent = .015;
+        const limit = Math.round(trackPathArray.length * percent);
+
+        const goalPathArray = new Array<Array<Vector3>>();
+        for (let index = 0; index < limit; ++index) {
+            goalPathArray.push([trackPathArray[index][1], trackPathArray[index][2]]);
+        }
+
+        const goal = RibbonBuilder.CreateRibbon("goal", {
+            pathArray: goalPathArray
+        });
+
+        const material = new PBRMaterial("goal", scene);
+        material.metallic = 0;
+        material.roughness = 0.5;
+        material.backFaceCulling = false;
+        material.twoSidedLighting = true;
+
+        const albedoTexture = new Texture("public/textures/goal_basecolor.png", scene);
+        material.albedoTexture = albedoTexture;
+        goal.material = material;
     }
 
     private getHazardPoints(height: number, density: number, radius: number, minDistance: number, pathArray: Array<Array<Vector3>>): Array<Vector3> {
@@ -155,19 +164,6 @@ export class Track {
             }
         }
         return hazardPoints;
-    }
-
-    private getGoalMesh(pathArray: Array<Array<Vector3>>): Array<Array<Vector3>> {
-        const percent = .015;
-        const limit = Math.round(pathArray.length * percent);
-
-        const goalArray = new Array<Array<Vector3>>();
-
-        for (var index = 0; index < limit; ++index) {
-            goalArray.push([pathArray[index][2], pathArray[index][3]]);
-        }
-
-        return goalArray;
     }
 
     private getTrackPoints(numPoints: number, radius: number, lateralVariance: number, heightVariance: number): Array<Vector3> {
