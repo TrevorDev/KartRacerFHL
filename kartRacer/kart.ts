@@ -63,6 +63,15 @@ export class Kart extends TransformNode {
         var ray = new Ray(this.position, this.up.scale(-1.0), 0.7);
         var hit = KartEngine.instance.scene.pickWithRay(ray);
         if (hit.hit) {
+            // MAGIC: There is a bug in the picking code where the barycentric coordinates
+            // returned for bu and bv are actually bv and bw.  This causes the normals to be
+            // calculated incorrectly.
+            const bv = hit.bu;
+            const bw = hit.bv;
+            const bu = 1.0 - bv - bw;
+            hit.bu = bu;
+            hit.bv = bv;
+
             var normal = hit.getNormal(true, true);
 
             this._filteredUp = Vector3.Lerp(
