@@ -25,14 +25,10 @@ var main = async () => {
     });
     var skybox = new Skybox(kartEngine.scene);
 
-    const offset = new Vector3(0, 0.5, 0);
+    const offset = new Vector3(0, 1, 0);
     var camera = new FreeCamera("camera", new Vector3(0, 10, 3), kartEngine.scene);
     camera.rotationQuaternion = new Quaternion();
-    camera.setTarget(track.startTarget.add(offset));
-    camera.attachControl(kartEngine.canvas);
-    camera.minZ = 0.01;
-    camera.maxZ = 1000;
-    camera.speed = 2;
+    kartEngine.scene.activeCamera = camera;
 
     kartEngine.scene.createDefaultLight(true);
 
@@ -45,34 +41,37 @@ var main = async () => {
     // Multiplayer
     var multiplayer = new Multiplayer(kartEngine.scene);
 
+    var gameStarted = false;
+    billboard.onGameStartObservable.addOnce(()=>{
+        let checkpoints : Set<Vector3> = new Set<Vector3>();
+
+        track.trackPoints.forEach(function (value)
+        {
+            checkpoints.add(value);;
+        });
+
+        kartEngine.kart.initializeTrackProgress(checkpoints, startingPosition);
+
+        let camera = kartEngine.kart.activateKartCamera();
+        kartEngine.kart.position = startingPosition;
+        kartEngine.kart.lookAt(startingRotation);
+        kartEngine.kart.computeWorldMatrix();
+
+        // Initialize Multiplayer
+        multiplayer.connectToRoom("testRoom", kartEngine.kart);
+        multiplayer.trackedObject = camera;
+
+        initMP = true;
+        menu = new Menu(camera, kartEngine.scene);
+        menu.EnableHud();
+        kartEngine.kart.assignKartName(billboard.getRacerName());
+        menu.StartTimer();
+        gameStarted=true;
+    })
+
     // Main render loop
     kartEngine.scene.onBeforeRenderObservable.add(() => {
-        if (Billboard.startGame && !initMP) {
-            let checkpoints : Set<Vector3> = new Set<Vector3>();
-
-            track.trackPoints.forEach(function (value)
-            {
-                checkpoints.add(value);;
-            });
-
-            kartEngine.kart.initializeTrackProgress(checkpoints, startingPosition);
-
-            let camera = kartEngine.kart.activateKartCamera();
-            kartEngine.kart.position = startingPosition;
-            kartEngine.kart.lookAt(startingRotation);
-            kartEngine.kart.computeWorldMatrix();
-
-            // Initialize Multiplayer
-            multiplayer.connectToRoom("testRoom", kartEngine.kart);
-            multiplayer.trackedObject = camera;
-
-            initMP = true;
-            menu = new Menu(camera, kartEngine.scene);
-            menu.EnableHud();
-            kartEngine.kart.assignKartName(billboard.getRacerName());
-            menu.StartTimer();
-        }
-        else if (Billboard.startGame && initMP) {
+        if (gameStarted) {
             multiplayer.update();
             menu.UpdateHUD(kartEngine.kart.getTrackComplete());
             if(kartEngine.kart.getTrackComplete() == 100)

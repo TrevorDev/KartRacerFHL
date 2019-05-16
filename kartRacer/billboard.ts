@@ -1,12 +1,11 @@
 import { KartEngine } from "./engine";
-import { Animation, FreeCamera, Mesh, Vector3, StandardMaterial, BezierCurveEase, Texture } from "@babylonjs/core";
+import { Animation, FreeCamera, Mesh, Vector3, StandardMaterial, BezierCurveEase, Texture, Observable } from "@babylonjs/core";
 import { AdvancedDynamicTexture, StackPanel, Button, InputText } from "@babylonjs/gui";
 
 export class Billboard {
     private _root: Mesh;
     private _racerName: InputText;
-
-    public static startGame: boolean = false;
+    public onGameStartObservable = new Observable();
 
     constructor(startPos: Vector3, startRotate: Vector3, kartEngine: KartEngine, camera: FreeCamera) {
         var root = new Mesh("billboard", kartEngine.scene)
@@ -54,8 +53,8 @@ export class Billboard {
         billBoardPanel.scaling.y = 6;
         billBoardPanel.position.set(0, 10, 10.51)
 
-        button1.onPointerUpObservable.add(function () {
-            /*var startRot = camera.rotationQuaternion.clone();
+        button1.onPointerUpObservable.add(() => {
+            var startRot = camera.rotationQuaternion.clone();
             var oldPos = camera.position.clone()
             camera.position.copyFrom(startPos)
             camera.setTarget(startRotate)
@@ -69,10 +68,11 @@ export class Billboard {
             Animation.CreateAndStartAnimation("moveCamera",
                 camera, "position", 60, 120, camera.position, startPos, Animation.ANIMATIONLOOPMODE_CONSTANT, bezierEase);
 
-            Animation.CreateAndStartAnimation("rotateCamera",
-                camera, "rotationQuaternion", 60, 120, camera.rotationQuaternion, targetRot, Animation.ANIMATIONLOOPMODE_CONSTANT, bezierEase);*/
-
-            Billboard.startGame = true;
+            var a = Animation.CreateAndStartAnimation("rotateCamera",
+                camera, "rotationQuaternion", 60, 120, camera.rotationQuaternion, targetRot, Animation.ANIMATIONLOOPMODE_CONSTANT, bezierEase);
+            a.onAnimationEndObservable.add(()=>{
+                this.onGameStartObservable.notifyObservers({});
+            })
         });
 
         // Set elements as children of root
