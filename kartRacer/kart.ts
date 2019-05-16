@@ -1,12 +1,14 @@
 import { IKartInput } from "./input";
 import { KartEngine } from "./engine";
-import { Engine, Mesh, Scene, Vector3, Ray, Quaternion, Matrix, FreeCamera, TransformNode, Camera, Scalar } from "@babylonjs/core";
+import { Engine, Mesh, Scene, Vector3, Ray, Quaternion, FreeCamera, TransformNode, StandardMaterial, Scalar } from "@babylonjs/core";
+import { AdvancedDynamicTexture, StackPanel, TextBlock } from "@babylonjs/gui";
 
 export class Kart extends TransformNode {
     private _mesh: Mesh;
     private _camera: FreeCamera;
     private _locallyOwned: boolean;
     private _input: IKartInput;
+    private _hits: number = -1;
 
     private static readonly UP_GROUNDED_FILTER_STRENGTH: number = 7.0;
     private static readonly UP_FALLING_FILTER_STRENGTH: number = 1.0;
@@ -28,9 +30,13 @@ export class Kart extends TransformNode {
     private _lastSafePosition: Vector3 = Vector3.Zero();
     private _lastSafeFilteredUp: Vector3 = Vector3.Zero();
     private _turnFactor: number = 0.0;
+    private _kartName : string = "";
     private _lastHazard: number = -1;
     private _bombHitTime: number = 0;
     private _velocityFactor: number = 1;
+    private _initialPosition: Vector3;
+    private _checkpoints: Set<Vector3> = new Set<Vector3>();
+    private _totalCheckpoints: number = 0;
     private _boostHitTime: number = 0;
 
     constructor(kartName: string, scene: Scene, locallyOwned: boolean = true) {
@@ -56,6 +62,41 @@ export class Kart extends TransformNode {
         });
 
         return this._camera;
+    }
+
+    public assignKartName(name : string): void {
+        var namePlane = Mesh.CreatePlane("namePlane", 2, this._scene);
+        namePlane.material = new StandardMaterial("", this._scene)
+
+        var nameMesh = AdvancedDynamicTexture.CreateForMesh(namePlane);
+        var stackPanel = new StackPanel();
+        stackPanel.height = "100%";
+        nameMesh.addControl(stackPanel);
+
+        var nameText = new TextBlock();
+        nameText.height = "100%";
+        nameText.textVerticalAlignment = TextBlock.VERTICAL_ALIGNMENT_TOP;
+        nameText.fontSize = 160;
+        nameText.color = "white"
+        nameText.text = name;
+        nameText.textWrapping = true;
+        stackPanel.addControl(nameText);
+        namePlane.position.set(0,1,0);
+        namePlane.parent = this;
+
+        this._kartName = name;
+    }
+
+    public initializeTrackProgress(checkpoints: Set<Vector3>, startingPosition: Vector3): void
+    {
+        this._initialPosition = startingPosition;
+        this._checkpoints = checkpoints;
+        this._totalCheckpoints = checkpoints.size;
+    }
+
+    public getTrackComplete(): number
+    {
+        return Math.round(this._hits / this._totalCheckpoints * 100);
     }
 
     private updateFromPhysics(): void {
@@ -152,6 +193,7 @@ export class Kart extends TransformNode {
     private checkHazardCollision(name: string): number
     {
         const radiusCollision = 2;
+
         const hazards = (KartEngine.instance.scene as any).getTransformNodeByName(name);
 
         if (hazards == null)
@@ -217,6 +259,38 @@ export class Kart extends TransformNode {
         this._velocity.scaleInPlace(1.0 - (this.getBrake() * Kart.BRAKE_SCALAR * this._deltaTime));
     }
 
+    private updateFromTrackProgress(): void {
+        let i = 0
+        let hit = false;
+        let hits = this._hits;
+        let kartPos = this.position;
+        let checkpoints = this._checkpoints;
+        let startingPosition = this._initialPosition;
+
+        this._checkpoints.forEach(function (value)
+        {
+            let x = Math.abs(kartPos.x - value.x);
+            let y = Math.abs(kartPos.y - value.y);
+            let z = Math.abs(kartPos.z - value.z);
+            let rad = 8;
+
+            if(!hit && x < rad && y < rad && z < rad)
+            {
+                checkpoints.delete(value);
+
+                // HACK: Re-add initial checkpoint because we clear it by default
+                if (hits == 2)
+                {
+                    checkpoints.add(startingPosition);
+                }
+
+                hits++;
+            }
+        });
+
+        this._hits = hits;
+    }
+
     private beforeRenderUpdate(): void {
         this._deltaTime = Engine.Instances[0].getDeltaTime() / 1000.0;
         
@@ -225,11 +299,13 @@ export class Kart extends TransformNode {
             this._velocityFactor = 1;
         }
 
+        this.updateFromTrackProgress();
+
         if (this._velocityFactor > 1 && (new Date).getTime() - this._boostHitTime > Kart.BOOST_DURATION)
         {
             this._velocityFactor = 1;
         }
-
+      
         this.updateFromPhysics();
 
         if (this._velocityFactor >= 1 )

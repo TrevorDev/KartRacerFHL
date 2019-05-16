@@ -1,26 +1,30 @@
-import { FreeCamera, Scene, Mesh, StandardMaterial, Vector3 } from "@babylonjs/core";
-import { PlanePanel, AdvancedDynamicTexture, TextBlock, StackPanel } from "@babylonjs/gui";
+import { FreeCamera, Scene, Mesh, StandardMaterial } from "@babylonjs/core";
+import { AdvancedDynamicTexture, TextBlock, StackPanel } from "@babylonjs/gui";
 
 export class Menu {
     private _camera : FreeCamera;
     private _UI : Mesh;
     private _timeText : TextBlock = null;
+    private _scoreText : TextBlock = null;
     private _startTime : number = null;
     private _stopTimer : boolean = false;
 
     constructor (camera : FreeCamera, scene : Scene)
     {
-        var hudPlane = Mesh.CreatePlane("hudPlane", 4, scene)
+        var hudPlane = Mesh.CreatePlane("hudPlane", 4.5, scene)
         hudPlane.material = new StandardMaterial("", scene)
 
         var driverUI = AdvancedDynamicTexture.CreateForMesh(hudPlane);
 
         var stackPanel = new StackPanel();
         stackPanel.height = "1000px";
+        stackPanel.width = "100%";
         driverUI.addControl(stackPanel);
 
         var timeText = new TextBlock();
-        timeText.height = "150px";
+        timeText.height = "100px";
+        timeText.width = "100%";
+        timeText.textHorizontalAlignment = TextBlock.HORIZONTAL_ALIGNMENT_RIGHT;
         timeText.fontSize = 40;
         timeText.color = "white"
         timeText.text = "TIME: 00:00:00";
@@ -28,24 +32,18 @@ export class Menu {
         stackPanel.addControl(timeText);
 
         var scoreText = new TextBlock();
-        scoreText.height = "500px";
-        scoreText.fontSize = 25;
+        scoreText.height = "50px";
+        scoreText.width = "100%";
+        scoreText.textHorizontalAlignment = TextBlock.HORIZONTAL_ALIGNMENT_RIGHT
+        scoreText.fontSize = 40;
         scoreText.color = "white"
-        scoreText.textWrapping = true;
-        scoreText.text = "Lorem Ipsum is simply dummy text of the printing " +
-        "and typesetting industry. Lorem Ipsum has been the industry's standard " +
-        "dummy text ever since the 1500s, when an unknown printer took a galley of " + 
-        "type and scrambled it to make a type specimen book. It has survived not only " + 
-        "five centuries, but also the leap into electronic typesetting, remaining " + 
-        "essentially unchanged. It was popularised in the 1960s with the release of " + 
-        "Letraset sheets containing Lorem Ipsum passages, and more recently with desktop " + 
-        "publishing software like Aldus PageMaker including versions of Lorem Ipsum.";
-        scoreText.isVisible = false;
+        scoreText.text = "0% Complete";
         
         stackPanel.addControl(scoreText);
 
         this._UI = hudPlane;
         this._timeText = timeText;
+        this._scoreText = scoreText;
         this._camera = camera;
     }
 
@@ -54,7 +52,7 @@ export class Menu {
         this._UI.isVisible = isEnabled;
     }
 
-    public UpdateHUD() : void
+    public UpdateHUD(prog : number) : void
     {
         if (this._startTime != null && !this._stopTimer)
         {
@@ -68,6 +66,7 @@ export class Menu {
             var secondsString : string = (seconds < 10 ? "0" : "") + seconds
 
             this._timeText.text = "TIME: " + hoursString + ":" + minutesString + ":" + secondsString;
+            this._scoreText.text = prog + "% Complete";
         }
     }
 
