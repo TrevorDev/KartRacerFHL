@@ -159,7 +159,7 @@ export class Track {
 
         const goalPathArray = new Array<Array<Vector3>>();
         for (let index = 0; index < limit; ++index) {
-            goalPathArray.push([trackPathArray[index][1], trackPathArray[index][2]]);
+            goalPathArray.push([trackPathArray[index][2], trackPathArray[index][3]]);
         }
 
         const goal = RibbonBuilder.CreateRibbon("goal", {
