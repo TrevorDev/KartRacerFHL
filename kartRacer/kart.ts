@@ -1,6 +1,6 @@
 import { IKartInput } from "./input";
 import { KartEngine } from "./engine";
-import { Engine, Mesh, Scene, Vector3, Ray, Quaternion, FreeCamera, TransformNode, StandardMaterial } from "@babylonjs/core";
+import { Engine, Mesh, Scene, Vector3, Ray, Quaternion, FreeCamera, TransformNode, StandardMaterial, Scalar } from "@babylonjs/core";
 import { AdvancedDynamicTexture, StackPanel, TextBlock } from "@babylonjs/gui";
 
 export class Kart extends TransformNode {
@@ -88,6 +88,15 @@ export class Kart extends TransformNode {
         var ray = new Ray(this.position, this.up.scale(-1.0), 0.7);
         var hit = KartEngine.instance.scene.pickWithRay(ray);
         if (hit.hit) {
+            // MAGIC: There is a bug in the picking code where the barycentric coordinates
+            // returned for bu and bv are actually bv and bw.  This causes the normals to be
+            // calculated incorrectly.
+            const bv = hit.bu;
+            const bw = hit.bv;
+            const bu = 1.0 - bv - bw;
+            hit.bu = bu;
+            hit.bv = bv;
+
             var normal = hit.getNormal(true, true);
 
             this._filteredUp = Vector3.Lerp(
@@ -189,6 +198,8 @@ export class Kart extends TransformNode {
 
         this.rotateAround(this.position, this.up, this._relocity);
 
+        
+        KartEngine.instance.assets.engineSound.setVolume(Scalar.Lerp(KartEngine.instance.assets.engineSound.getVolume(),this.getForward(), 0.1))
         this._velocity.addInPlace(this.forward.scale(this.getForward() * Kart.FORWARD_VELOCITY_SCALAR * this._velocityFactor * this._deltaTime));
 
         this._velocity.subtractInPlace(this.forward.scale(this.getBack() * this._deltaTime));
