@@ -178,7 +178,7 @@ export class Kart extends TransformNode {
             direction.y =0;
             direction.normalize();
 
-            const speed = this._velocity.length()*.5;
+            const speed = Math.max(this._velocity.length()*.5, 0.3);
 
             direction.scaleInPlace(this._velocity.length()*2);
             this._velocity.addInPlace(direction);
