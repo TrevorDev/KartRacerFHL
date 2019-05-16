@@ -52,6 +52,8 @@ var main = async () => {
 
             let camera = kartEngine.kart.activateKartCamera();
             kartEngine.kart.position = startingPosition;
+            kartEngine.kart.lookAt(startingRotation);
+            kartEngine.kart.computeWorldMatrix();
 
             multiplayer.connectToRoom("testRoom", kartEngine.kart);
             multiplayer.trackedObject = camera;
