@@ -82,13 +82,15 @@ export class Track {
         boostHazards.parent = track;
         const bumperHazards = new TransformNode("bumpers", scene);
         bumperHazards.parent = track;
+        const poisonHazards = new TransformNode("poison", scene);
+        poisonHazards.parent = track;
 
         const hazardScale = 4;
         
         for (const hazardPoint of hazardPoints) {
             
             const hazardType =  this.random();
-            if (hazardType < .33){
+            if (hazardType < .25){
                 const bomb = KartEngine.instance.assets.bomb.createInstance("bomb");
                 bomb.scaling.scaleInPlace(hazardScale);
                 const rotationY = this.random() * Scalar.TwoPi;
@@ -96,7 +98,7 @@ export class Track {
                 bomb.position.copyFrom(hazardPoint);
                 bomb.parent = bombHazards;
             }
-            else if (hazardType < .66) {
+            else if (hazardType < .5) {
                 const boost = KartEngine.instance.assets.boost.createInstance("boost");
                 boost.scaling.scaleInPlace(hazardScale);
                 const rotationY = this.random() * Scalar.TwoPi;
@@ -104,13 +106,21 @@ export class Track {
                 boost.position.copyFrom(hazardPoint);
                 boost.parent = boostHazards;
             }
-            else {
+            else if (hazardType < 1) {
                 const bumper = KartEngine.instance.assets.bumper.createInstance("bumper");
                 bumper.scaling.scaleInPlace(hazardScale);
                 const rotationY = this.random() * Scalar.TwoPi;
                 bumper.addRotation(0, rotationY, 0);
                 bumper.position.copyFrom(hazardPoint);
                 bumper.parent = bumperHazards;
+            }
+            else{
+                const poison = KartEngine.instance.assets.poison.createInstance("poison");
+                poison.scaling.scaleInPlace(hazardScale);
+                const rotationY = this.random() * Scalar.TwoPi;
+                poison.addRotation(0, rotationY, 0);
+                poison.position.copyFrom(hazardPoint);
+                poison.parent = poisonHazards;
             }
         }
 
