@@ -1,4 +1,4 @@
-import { Vector3, Curve3, RibbonBuilder, PBRMaterial, Texture, Tools, Scene, TransformNode, Mesh, Scalar } from "@babylonjs/core";
+import { Vector3, Curve3, RibbonBuilder, PBRMaterial, Texture, Tools, Scene, TransformNode, Mesh, InstancedMesh, Scalar, Engine } from "@babylonjs/core";
 import { KartEngine } from "./engine";
 
 interface ITrackPoint {
@@ -18,6 +18,11 @@ export class Track {
     public readonly controlPoints: Vector3[];
 
     private _varianceSeed: number;
+
+    private _bombHazards: InstancedMesh[];
+    private _boostHazards: InstancedMesh[];
+    private _bumperHazards: InstancedMesh[];
+    private _poisonHazards: InstancedMesh[];
 
     constructor(scene: Scene, options: { radius: number, numPoints: number, varianceSeed: number, lateralVariance: number, heightVariance: number, width: number }) {
         this._varianceSeed = options.varianceSeed;
@@ -175,31 +180,67 @@ export class Track {
         const poisonHazards = new TransformNode("poisons", scene);
         poisonHazards.parent = track;
 
-        function createHazard(name: string, mesh: Mesh, point: Vector3, rotationY: number, group: TransformNode): void {
+        function createHazard(name: string, mesh: Mesh, point: Vector3, rotationY: number, group: TransformNode): InstancedMesh {
             const hazardScale = 4;
             const instance = mesh.createInstance(name);
             instance.scaling.scaleInPlace(hazardScale);
             instance.addRotation(0, rotationY, 0);
             instance.position.copyFrom(point);
             instance.parent = group;
+
+            return instance;
         }
+
+        this._bombHazards = [];
+        this._boostHazards = [];
+        this._bumperHazards = [];
+        this._poisonHazards = [];
 
         for (const hazardPoint of hazardPoints) {
             const hazardType = this.random();
             const rotationY = this.random();
             if (hazardType < 0.25) {
-                createHazard("bomb", KartEngine.instance.assets.bomb, hazardPoint, rotationY, bombHazards);
+                this._bombHazards.push(createHazard("bomb", KartEngine.instance.assets.bomb, hazardPoint, rotationY, bombHazards));
             }
             else if (hazardType < 0.50) {
-                createHazard("boost", KartEngine.instance.assets.boost, hazardPoint, rotationY, boostHazards);
+                this._boostHazards.push(createHazard("boost", KartEngine.instance.assets.boost, hazardPoint, rotationY, boostHazards));
             }
             else if (hazardType < 0.75) {
-                createHazard("bumper", KartEngine.instance.assets.bumper, hazardPoint, rotationY, bumperHazards);
+                this._bumperHazards.push(createHazard("bumper", KartEngine.instance.assets.bumper, hazardPoint, rotationY, bumperHazards));
             }
             else {
-                createHazard("poison", KartEngine.instance.assets.poison, hazardPoint, rotationY, poisonHazards);
+                this._poisonHazards.push(createHazard("poison", KartEngine.instance.assets.poison, hazardPoint, rotationY, poisonHazards));
             }
         }
+
+        var self: Track = this;
+        var time: number = 0.0;
+        var scalar: number;
+        var scale: number;
+        scene.onBeforeRenderObservable.add(() => {
+            time += Engine.Instances[0].getDeltaTime() / 1000.0;
+            scalar = 2.0 * time;
+
+            self._bombHazards.forEach((hazard) => {
+                scale = 0.5 * Math.sin(scalar++);
+                hazard.scaling.set(4.0 + scale, 4.0 - scale, 4.0 + scale);
+            });
+
+            self._boostHazards.forEach((hazard) => {
+                scale = 0.5 * Math.sin(scalar++);
+                hazard.scaling.set(4.0 + scale, 4.0 - scale, 4.0 + scale);
+            });
+
+            self._bumperHazards.forEach((hazard) => {
+                scale = 0.5 * Math.sin(scalar++);
+                hazard.scaling.set(4.0 + scale, 4.0 - scale, 4.0 + scale);
+            });
+
+            self._poisonHazards.forEach((hazard) => {
+                scale = 0.5 * Math.sin(scalar++);
+                hazard.scaling.set(4.0 + scale, 4.0 - scale, 4.0 + scale);
+            });
+        });
     }
 
     private getHazardPoints(height: number, density: number, trackPoints: Array<ITrackPoint>): Array<Vector3> {
