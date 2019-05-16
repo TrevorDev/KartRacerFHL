@@ -43,12 +43,8 @@ var main = async () => {
 
     var gameStarted = false;
     billboard.onGameStartObservable.addOnce(()=>{
-        let checkpoints : Set<Vector3> = new Set<Vector3>();
-
-            for (const value of track.trackPoints)
-            {
-                checkpoints.add(value);;
-            }
+        let checkpoints : Vector3[] = track.trackPoints.slice(2,track.trackPoints.length); 
+        checkpoints[track.trackPoints.length - 2] = track.trackPoints[1];
 
         kartEngine.kart.initializeTrackProgress(checkpoints, startingPosition);
 

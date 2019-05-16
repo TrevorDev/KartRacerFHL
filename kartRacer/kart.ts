@@ -8,7 +8,7 @@ export class Kart extends TransformNode {
     private _camera: FreeCamera;
     private _locallyOwned: boolean;
     private _input: IKartInput;
-    private _hits: number = -1;
+    private _hits: number = 0;
 
     private static readonly UP_GROUNDED_FILTER_STRENGTH: number = 7.0;
     private static readonly UP_FALLING_FILTER_STRENGTH: number = 1.0;
@@ -35,7 +35,7 @@ export class Kart extends TransformNode {
     private _bombHitTime: number = 0;
     private _velocityFactor: number = 1;
     private _initialPosition: Vector3;
-    private _checkpoints: Set<Vector3> = new Set<Vector3>();
+    private _checkpoints: Vector3[];
     private _totalCheckpoints: number = 0;
     private _boostHitTime: number = 0;
 
@@ -89,11 +89,11 @@ export class Kart extends TransformNode {
         this._kartName = name;
     }
 
-    public initializeTrackProgress(checkpoints: Set<Vector3>, startingPosition: Vector3): void
+    public initializeTrackProgress(checkpoints: Vector3[], startingPosition: Vector3): void
     {
         this._initialPosition = startingPosition;
         this._checkpoints = checkpoints;
-        this._totalCheckpoints = checkpoints.size;
+        this._totalCheckpoints = checkpoints.length;
     }
 
     public getTrackComplete(): number
@@ -279,24 +279,14 @@ export class Kart extends TransformNode {
         let hit = false;
         let kartPos = this.position;
 
-        for (const value of this._checkpoints)
+        let x = Math.abs(kartPos.x - this._checkpoints[this._hits].x);
+        let y = Math.abs(kartPos.y - this._checkpoints[this._hits].y);
+        let z = Math.abs(kartPos.z - this._checkpoints[this._hits].z);
+        let rad = 8;
+
+        if(x < rad && y < rad && z < rad)
         {
-            let x = Math.abs(kartPos.x - value.x);
-            let y = Math.abs(kartPos.y - value.y);
-            let z = Math.abs(kartPos.z - value.z);
-            let rad = 8;
-
-            if(!hit && x < rad && y < rad && z < rad)
-            {
-                this._checkpoints.delete(value);
-
-                if (this._hits == 2)
-                {
-                    this._checkpoints.add(this._initialPosition);
-                }
-
-                this._hits++;
-            }
+            this._hits++;
         }
     }
 
@@ -308,7 +298,10 @@ export class Kart extends TransformNode {
             this._velocityFactor = 1;
         }
 
-        this.updateFromTrackProgress();
+        if(this._hits < this._checkpoints.length)
+        {
+            this.updateFromTrackProgress();
+        }
 
         if (this._velocityFactor > 1 && (new Date).getTime() - this._boostHitTime > Kart.BOOST_DURATION)
         {
