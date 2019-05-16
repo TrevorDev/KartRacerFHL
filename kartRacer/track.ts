@@ -72,17 +72,43 @@ export class Track {
             tree.parent = trees;
         }
 
-        const hazards = new TransformNode("hazards", scene);
-        hazards.parent = track;
-        const hazardPoints = this.getHazardPoints(2, .1, 1.0, 0.5, pathArray);
-        const bombScale = 4;
+        const hazardPoints = this.getHazardPoints(1.5, .15, 1.0, 0.5, pathArray);
+        const bombHazards = new TransformNode("bombs", scene);
+        bombHazards.parent = track;
+        const boostHazards = new TransformNode("boosts", scene);
+        boostHazards.parent = track;
+        const bumperHazards = new TransformNode("bumpers", scene);
+        bumperHazards.parent = track;
+
+        const hazardScale = 4;
+        
         for (const hazardPoint of hazardPoints) {
-            const bomb = KartEngine.instance.assets.bomb.createInstance("bomb");
-            bomb.scaling.scaleInPlace(bombScale);
-            const rotationY = this.random() * Scalar.TwoPi;
-            bomb.addRotation(0, rotationY, 0);
-            bomb.position.copyFrom(hazardPoint);
-            bomb.parent = hazards;
+            
+            const hazardType =  this.random();
+            if (hazardType < .33){
+                const bomb = KartEngine.instance.assets.bomb.createInstance("bomb");
+                bomb.scaling.scaleInPlace(hazardScale);
+                const rotationY = this.random() * Scalar.TwoPi;
+                bomb.addRotation(0, rotationY, 0);
+                bomb.position.copyFrom(hazardPoint);
+                bomb.parent = bombHazards;
+            }
+            else if (hazardType < .66) {
+                const boost = KartEngine.instance.assets.boost.createInstance("boost");
+                boost.scaling.scaleInPlace(hazardScale);
+                const rotationY = this.random() * Scalar.TwoPi;
+                boost.addRotation(0, rotationY, 0);
+                boost.position.copyFrom(hazardPoint);
+                boost.parent = boostHazards;
+            }
+            else {
+                const bumper = KartEngine.instance.assets.bumper.createInstance("bumper");
+                bumper.scaling.scaleInPlace(hazardScale);
+                const rotationY = this.random() * Scalar.TwoPi;
+                bumper.addRotation(0, rotationY, 0);
+                bumper.position.copyFrom(hazardPoint);
+                bumper.parent = bumperHazards;
+            }
         }
 
         this.startPoint = getPoint(0);

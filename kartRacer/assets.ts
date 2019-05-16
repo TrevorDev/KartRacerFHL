@@ -6,6 +6,8 @@ export class Assets {
     public kart: Mesh;
     public tree: Mesh;
     public bomb: Mesh;
+    public boost: Mesh;
+    public bumper: Mesh;
     public engineSound: Sound;
     public music: Sound;
 
@@ -29,6 +31,18 @@ export class Assets {
         this.bomb.name = "bomb";
         this.bomb.parent = assets;
         bomb.dispose();
+
+        const boost = await this.loadAsset(assets,  "/public/models/wing.glb");
+        this.boost = Mesh.MergeMeshes(boost.getChildMeshes() as Mesh[], undefined, undefined, undefined, undefined, true);
+        this.boost.name = "boost";
+        this.boost.parent = assets;
+        boost.dispose;
+
+        const bumper = await this.loadAsset(assets,  "/public/models/bumper.glb");
+        this.bumper = Mesh.MergeMeshes(bumper.getChildMeshes() as Mesh[], undefined, undefined, undefined, undefined, true);
+        this.bumper.name = "bumper";
+        this.bumper.parent = assets;
+        bumper.dispose;
 
         this.engineSound = new Sound("Music", "/public/sounds/go.mp3", KartEngine.instance.scene, () => {
             this.engineSound.setVolume(0);

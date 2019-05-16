@@ -17,10 +17,8 @@ export class Kart extends TransformNode {
     private static readonly VELOCITY_DECAY_SCALAR: number = 2.0;
     private static readonly TURN_DECAY_SCALAR: number = 5.0;
     private static readonly BRAKE_SCALAR: number = 3.0;
-    private static readonly SLOW_DURATION: number = 5500;
-
-
-
+    private static readonly SLOW_DURATION: number = 2000;
+    private static readonly BOOST_DURATION: number = 1000;
 
     private _velocity: Vector3 = Vector3.Zero();
     private _relocity: number = 0.0;
@@ -33,6 +31,7 @@ export class Kart extends TransformNode {
     private _lastHazard: number = -1;
     private _bombHitTime: number = 0;
     private _velocityFactor: number = 1;
+    private _boostHitTime: number = 0;
 
     constructor(kartName: string, scene: Scene, locallyOwned: boolean = true) {
         super(kartName, scene);
@@ -109,21 +108,77 @@ export class Kart extends TransformNode {
         var forward = Vector3.Cross(this.right, this._filteredUp);
         var right = Vector3.Cross(this._filteredUp, forward);
         this.rotationQuaternion = Quaternion.RotationQuaternionFromAxis(right, this._filteredUp, forward);
-        const hazardId = this.checkBombCollision();
-        if (hazardId != -1 && hazardId != this._lastHazard)
+        let collisionId = this.checkHazardCollision("bombs");
+        
+        if (collisionId != -1 && collisionId != this._lastHazard)
         {
-            this._velocity.set(0.0, 0.0, 0.0);
-            this._lastHazard = hazardId;
+            this._velocity.set(0.0, 1.2, 0.0);
+            this._lastHazard = collisionId;
             this._bombHitTime = (new Date).getTime();
             this._velocityFactor = 0.5;
         }
 
+        collisionId = this.checkHazardCollision("boosts"); 
+        if (collisionId != -1 && collisionId != this._lastHazard)
+        {
+            this._lastHazard = collisionId;
+            this._boostHitTime = (new Date).getTime();
+            this._velocityFactor = 1.6;
+        }
+
+        collisionId = this.checkHazardCollision("bumpers"); 
+        if (collisionId != -1)
+        {
+            const hazards = (KartEngine.instance.scene as any).getTransformNodeByName("bumpers");
+            const bumpers = hazards.getChildMeshes();
+            const bumper = bumpers[collisionId];
+            const bumperPosition = bumper.position;
+            let direction = this.position.subtract(bumperPosition);
+            direction.y =0;
+            direction.normalize();
+
+            const speed = this._velocity.length()*.5;
+
+            direction.scaleInPlace(this._velocity.length()*2);
+
+
+            // let angle = Vector3.GetAngleBetweenVectors(new Vector3(this._velocity.x, 0, this._velocity.z), direction,new Vector3(0,1,0));
+            // angle -= Math.PI/2.0;
+            // const cosA = Math.cos(angle);
+            // const sinA = Math.sin(angle);
+
+            // const newVelocity = new Vector3(this._velocity.x*cosA + this._velocity.z*sinA, this._velocity.y, this._velocity.x*sinA - this._velocity.z*cosA);
+            this._velocity.addInPlace(direction);// = newVelocity;
+            this._velocity.normalize();
+            this._velocity.scaleInPlace(speed);
+
+
+
+
+
+            // direction.y = 0;
+            // direction.normalize();
+            // // const speed = Math.max(this._velocity.length()*.8,0.3);
+            // const speed = this._velocity.length();
+            // const newVelocity = direction.scale(speed); 
+            // debugger;
+            // this._velocity.set(newVelocity.x, 0 , newVelocity.z);
+
+            
+            this._lastHazard = collisionId;
+        }
+
     }
 
-    private checkBombCollision(): number
+    private checkHazardCollision(name: string): number
     {
         const radiusCollision = 2;
-        const hazards = (KartEngine.instance.scene as any).getTransformNodeByName("hazards");
+        const hazards = (KartEngine.instance.scene as any).getTransformNodeByName(name);
+
+        if (hazards == null)
+        {
+            return -1
+        }
 
         const bombs = hazards.getChildMeshes();
 
@@ -191,9 +246,17 @@ export class Kart extends TransformNode {
             this._velocityFactor = 1;
         }
 
+        if (this._velocityFactor > 1 && (new Date).getTime() - this._boostHitTime > Kart.BOOST_DURATION)
+        {
+            this._velocityFactor = 1;
+        }
 
         this.updateFromPhysics();
-        this.updateFromControls();
+
+        if (this._velocityFactor >= 1 )
+        {
+            this.updateFromControls();
+        }
         
         this._velocity.scaleInPlace(1.0 - (Kart.VELOCITY_DECAY_SCALAR * this._deltaTime));
         this._relocity *= (1.0 - (Kart.TURN_DECAY_SCALAR * this._deltaTime));
