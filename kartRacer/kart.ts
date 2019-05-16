@@ -39,6 +39,8 @@ export class Kart extends TransformNode {
     private _totalCheckpoints: number = 0;
     private _boostHitTime: number = 0;
 
+    public TrackTime : string = "";
+
     constructor(kartName: string, scene: Scene, locallyOwned: boolean = true) {
         super(kartName, scene);
 
@@ -97,6 +99,11 @@ export class Kart extends TransformNode {
     public getTrackComplete(): number
     {
         return Math.round(this._hits / this._totalCheckpoints * 100);
+    }
+
+    public getKartName(): string
+    {
+        return this._kartName;
     }
 
     private updateFromPhysics(): void {
@@ -262,12 +269,9 @@ export class Kart extends TransformNode {
     private updateFromTrackProgress(): void {
         let i = 0
         let hit = false;
-        let hits = this._hits;
         let kartPos = this.position;
-        let checkpoints = this._checkpoints;
-        let startingPosition = this._initialPosition;
 
-        this._checkpoints.forEach(function (value)
+        for (const value of this._checkpoints)
         {
             let x = Math.abs(kartPos.x - value.x);
             let y = Math.abs(kartPos.y - value.y);
@@ -276,19 +280,16 @@ export class Kart extends TransformNode {
 
             if(!hit && x < rad && y < rad && z < rad)
             {
-                checkpoints.delete(value);
+                this._checkpoints.delete(value);
 
-                // HACK: Re-add initial checkpoint because we clear it by default
-                if (hits == 2)
+                if (this._hits == 2)
                 {
-                    checkpoints.add(startingPosition);
+                    this._checkpoints.add(this._initialPosition);
                 }
 
-                hits++;
+                this._hits++;
             }
-        });
-
-        this._hits = hits;
+        }
     }
 
     private beforeRenderUpdate(): void {

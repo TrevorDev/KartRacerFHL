@@ -50,10 +50,10 @@ var main = async () => {
         if (Billboard.startGame && !initMP) {
             let checkpoints : Set<Vector3> = new Set<Vector3>();
 
-            track.trackPoints.forEach(function (value)
+            for (const value of track.trackPoints)
             {
                 checkpoints.add(value);;
-            });
+            }
 
             kartEngine.kart.initializeTrackProgress(checkpoints, startingPosition);
 
@@ -75,9 +75,9 @@ var main = async () => {
         else if (Billboard.startGame && initMP) {
             multiplayer.update();
             menu.UpdateHUD(kartEngine.kart.getTrackComplete());
-            if(kartEngine.kart.getTrackComplete() == 100)
+            if(kartEngine.kart.getTrackComplete() == 100 && kartEngine.kart.TrackTime.length == 0)
             {
-                menu.StopTimer();
+                kartEngine.kart.TrackTime = menu.StopTimer();
             }
         }
     })
