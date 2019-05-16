@@ -124,7 +124,7 @@ export class Kart extends TransformNode {
     {
         const radiusCollision = 2;
         const hazards = (KartEngine.instance.scene as any).getTransformNodeByName("hazards");
-        console.log(hazards)
+
         const bombs = hazards.getChildMeshes();
 
         for (var index = 0; index < bombs.length; ++index) 
