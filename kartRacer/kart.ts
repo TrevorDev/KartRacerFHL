@@ -8,7 +8,7 @@ export class Kart extends TransformNode {
     private _camera: FreeCamera;
     private _locallyOwned: boolean;
     private _input: IKartInput;
-    private _hits: number = -1;
+    private _hits: number = 0;
 
     private static readonly UP_GROUNDED_FILTER_STRENGTH: number = 7.0;
     private static readonly UP_FALLING_FILTER_STRENGTH: number = 1.0;
@@ -36,7 +36,9 @@ export class Kart extends TransformNode {
     private _bombHitTime: number = 0;
     private _velocityFactor: number = 1;
     private _initialPosition: Vector3;
-    private _checkpoints: Set<Vector3> = new Set<Vector3>();
+
+    private _initialLookAt: Vector3;
+    private _checkpoints: Vector3[];
     private _totalCheckpoints: number = 0;
     private _boostHitTime: number = 0;
     private _slowHitTime: number = 0;
@@ -48,7 +50,8 @@ export class Kart extends TransformNode {
         super(kartName, scene);
 
         // this is a placeholder so that we actually spawn a Kart on game start.
-        this._mesh = KartEngine.instance.assets.kart.clone();
+        this._mesh = KartEngine.instance.assets.kart.clone("model");
+        this._mesh.getChildMeshes().forEach(child => child.isPickable = false);
         KartEngine.instance.scene.addMesh(this._mesh)
         this._mesh.parent = this;
         this._locallyOwned = locallyOwned;
@@ -92,11 +95,12 @@ export class Kart extends TransformNode {
         this._kartName = name;
     }
 
-    public initializeTrackProgress(checkpoints: Set<Vector3>, startingPosition: Vector3): void
+    public initializeTrackProgress(checkpoints: Vector3[], startingPosition: Vector3, startingLookAt: Vector3): void
     {
         this._initialPosition = startingPosition;
+        this._initialLookAt = startingLookAt;
         this._checkpoints = checkpoints;
-        this._totalCheckpoints = checkpoints.size;
+        this._totalCheckpoints = checkpoints.length;
     }
 
     public getTrackComplete(): number
@@ -293,24 +297,14 @@ export class Kart extends TransformNode {
         let hit = false;
         let kartPos = this.position;
 
-        for (const value of this._checkpoints)
+        let x = Math.abs(kartPos.x - this._checkpoints[this._hits].x);
+        let y = Math.abs(kartPos.y - this._checkpoints[this._hits].y);
+        let z = Math.abs(kartPos.z - this._checkpoints[this._hits].z);
+        let rad = 8;
+
+        if(x < rad && y < rad && z < rad)
         {
-            let x = Math.abs(kartPos.x - value.x);
-            let y = Math.abs(kartPos.y - value.y);
-            let z = Math.abs(kartPos.z - value.z);
-            let rad = 8;
-
-            if(!hit && x < rad && y < rad && z < rad)
-            {
-                this._checkpoints.delete(value);
-
-                if (this._hits == 2)
-                {
-                    this._checkpoints.add(this._initialPosition);
-                }
-
-                this._hits++;
-            }
+            this._hits++;
         }
     }
 
@@ -325,7 +319,11 @@ export class Kart extends TransformNode {
             this._state = "ok";
         }
 
-        this.updateFromTrackProgress();      
+        if(this._hits < this._checkpoints.length)
+        {
+            this.updateFromTrackProgress();
+        }
+     
         this.updateFromPhysics();
         this.updateFromHazards();
 
@@ -346,4 +344,15 @@ export class Kart extends TransformNode {
         this._camera.parent = this;
         this.getScene().activeCamera = this._camera;
     }
+
+    public reset(){
+        this._hits = 0;
+        this._state = "ok";
+        this._velocity.set(0,0,0);
+        this._velocityFactor = 1;
+        this.position = this._initialPosition;
+        this.lookAt(this._initialLookAt);
+        this.computeWorldMatrix();
+    }
 }
+

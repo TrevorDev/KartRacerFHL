@@ -42,19 +42,15 @@ var main = async () => {
     var multiplayer = new Multiplayer(kartEngine.scene);
 
     var gameStarted = false;
-    billboard.onGameStartObservable.addOnce(() => {
-        let checkpoints: Set<Vector3> = new Set<Vector3>();
+  
+    billboard.onGameStartObservable.addOnce(()=>{
+        let checkpoints : Vector3[] = track.controlPoints.slice(2,track.controlPoints.length); 
+        checkpoints[track.controlPoints.length - 2] = track.controlPoints[1];
 
-        for (const value of track.controlPoints) {
-            checkpoints.add(value);;
-        }
-
-        kartEngine.kart.initializeTrackProgress(checkpoints, startingPosition);
+        kartEngine.kart.initializeTrackProgress(checkpoints, startingPosition, startingRotation);
 
         let camera = kartEngine.kart.activateKartCamera();
-        kartEngine.kart.position = startingPosition;
-        kartEngine.kart.lookAt(startingRotation);
-        kartEngine.kart.computeWorldMatrix();
+        kartEngine.kart.reset();
 
         // Initialize Multiplayer
         multiplayer.connectToRoom("testRoom", kartEngine.kart);
@@ -75,6 +71,10 @@ var main = async () => {
             menu.UpdateHUD(kartEngine.kart.getTrackComplete());
             if (kartEngine.kart.getTrackComplete() == 100 && kartEngine.kart.TrackTime.length == 0) {
                 kartEngine.kart.TrackTime = menu.StopTimer();
+            }
+
+            if(kartEngine.kart.getTrackComplete() == 100){
+                multiplayer.raceComplete(billboard.getRacerName());
             }
         }
     })
