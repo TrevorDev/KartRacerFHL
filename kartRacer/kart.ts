@@ -160,6 +160,34 @@ export class Kart extends TransformNode {
         var forward = Vector3.Cross(this.right, this._filteredUp);
         var right = Vector3.Cross(this._filteredUp, forward);
         this.rotationQuaternion = Quaternion.RotationQuaternionFromAxis(right, this._filteredUp, forward);
+    }
+
+    private checkHazardCollision(name: string): number {
+        const radiusCollision = 2;
+
+        const hazards = (KartEngine.instance.scene as any).getTransformNodeByName(name);
+
+        if (hazards == null)
+        {
+            return -1;
+        }
+
+        const bombs = hazards.getChildMeshes();
+
+        for (var index = 0; index < bombs.length; ++index) 
+        {
+            const position = bombs[index].position;
+            const distance = this.position.subtract(position).length();
+            if (distance < radiusCollision)
+            {
+                return index;
+            }
+        }
+
+        return -1;
+    }
+
+    private updateFromHazards(): void {
         let collisionId = this.checkHazardCollision("bombs");
         if (collisionId != -1 && collisionId != this._lastHazard)
         {
@@ -216,34 +244,6 @@ export class Kart extends TransformNode {
             this._velocityFactor = 0.1;
             this._state = "slow";
         }
-
-
-    }
-
-    private checkHazardCollision(name: string): number
-    {
-        const radiusCollision = 2;
-
-        const hazards = (KartEngine.instance.scene as any).getTransformNodeByName(name);
-
-        if (hazards == null)
-        {
-            return -1
-        }
-
-        const bombs = hazards.getChildMeshes();
-
-        for (var index = 0; index < bombs.length; ++index) 
-        {
-            const position = bombs[index].position;
-            const distance = this.position.subtract(position).length();
-            if (distance < radiusCollision)
-            {
-                return index;
-            }
-        }
-        return -1;
-        
     }
 
     private getForward(): number {
@@ -328,6 +328,7 @@ export class Kart extends TransformNode {
 
         this.updateFromTrackProgress();      
         this.updateFromPhysics();
+        this.updateFromHazards();
 
         if (this._state != "exploded")
         {
