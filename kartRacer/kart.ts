@@ -100,6 +100,10 @@ export class Kart extends TransformNode {
         this._initialPosition = startingPosition;
         this._initialLookAt = startingLookAt;
         this._checkpoints = checkpoints;
+        // checkpoints.forEach((c)=>{
+        //     var s = Mesh.CreateSphere("", 16, 40)
+        //     s.position.copyFrom(c)
+        // })
         this._totalCheckpoints = checkpoints.length;
     }
 
@@ -297,12 +301,9 @@ export class Kart extends TransformNode {
         let hit = false;
         let kartPos = this.position;
 
-        let x = Math.abs(kartPos.x - this._checkpoints[this._hits].x);
-        let y = Math.abs(kartPos.y - this._checkpoints[this._hits].y);
-        let z = Math.abs(kartPos.z - this._checkpoints[this._hits].z);
-        let rad = 8;
+        let diff = kartPos.subtract(this._checkpoints[this._hits])
 
-        if(x < rad && y < rad && z < rad)
+        if(diff.length() < 20)
         {
             this._hits++;
         }

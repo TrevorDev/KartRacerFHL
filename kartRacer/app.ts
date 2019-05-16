@@ -74,7 +74,7 @@ var main = async () => {
             }
 
             if(kartEngine.kart.getTrackComplete() == 100){
-                multiplayer.raceComplete(billboard.getRacerName());
+                multiplayer.raceComplete(kartEngine.kart.getKartName());
             }
         }
     })
