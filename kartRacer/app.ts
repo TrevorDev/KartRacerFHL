@@ -58,6 +58,7 @@ var main = async () => {
 
         initMP = true;
         menu = new Menu(camera, kartEngine.scene);
+        multiplayer.setMenu(menu);
         menu.EnableHud();
         kartEngine.kart.assignKartName(billboard.getRacerName());
         menu.StartTimer();

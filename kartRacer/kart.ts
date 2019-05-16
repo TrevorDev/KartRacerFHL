@@ -88,6 +88,8 @@ export class Kart extends TransformNode {
         nameText.color = "white"
         nameText.text = name;
         nameText.textWrapping = true;
+        nameText.outlineColor = "black";
+        nameText.outlineWidth = 3;
         stackPanel.addControl(nameText);
         namePlane.position.set(0,1,0);
         namePlane.parent = this;

@@ -1,6 +1,7 @@
 import { Kart } from './kart';
-import { Vector3, Nullable, Quaternion, Scene, Scalar } from '@babylonjs/core';
+import { Vector3, Nullable, Quaternion, Scene, Scalar, Tools } from '@babylonjs/core';
 import { KartEngine } from './engine';
+import { Menu } from './menu';
 
 // Socket io
 declare var io: any;
@@ -13,6 +14,8 @@ export class Multiplayer {
     public pingMS = 1;
     private _raceId = 0;
     private _socket:SocketIO.Socket;
+    private _playerMenu : Menu;
+
     constructor(public scene: Scene) {
     }
 
@@ -59,9 +62,12 @@ export class Multiplayer {
             })
 
             socket.on("raceComplete", (info) => {
-                console.log(info.winnerName+" won the race")
+                this._playerMenu.SetWinText("GG!  The winner is\n" + info.winnerName);
                 this._raceId = info.raceId;
-                KartEngine.instance.kart.reset()
+                Tools.DelayAsync(3000).then(() => {
+                    KartEngine.instance.kart.reset();
+                    this._playerMenu.SetWinText("");
+                });
             })
         })
     }
@@ -71,6 +77,11 @@ export class Multiplayer {
         setTimeout(() => {
             this.repeat(fn, ms);
         }, ms);
+    }
+
+    public setMenu(playerMenu : Menu)
+    {
+        this._playerMenu = playerMenu;
     }
 
     public update() {
