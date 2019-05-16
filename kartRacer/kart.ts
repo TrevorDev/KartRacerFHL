@@ -178,12 +178,20 @@ export class Kart extends TransformNode {
             direction.y =0;
             direction.normalize();
 
-            const speed = Math.max(this._velocity.length()*.5, 0.3);
+            const angle = Vector3.GetAngleBetweenVectors(this._velocity, direction, new Vector3(0,1,0));
+            if (angle> 2*Math.PI/3.0 && angle < 4*Math.PI/3.0 )
+            {
+                this._velocity.set(-this._velocity.x, this._velocity.y, -this._velocity.z);
+            }
+            else
+            {
+                const speed = Math.max(this._velocity.length()*.8, 0.3);
 
-            direction.scaleInPlace(this._velocity.length()*2);
-            this._velocity.addInPlace(direction);
-            this._velocity.normalize();
-            this._velocity.scaleInPlace(speed);
+                direction.scaleInPlace(this._velocity.length()*2);
+                this._velocity.addInPlace(direction);
+                this._velocity.normalize();
+                this._velocity.scaleInPlace(speed);
+            }
             
             this._lastHazard = collisionId;
         }
