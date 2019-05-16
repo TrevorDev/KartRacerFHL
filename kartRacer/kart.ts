@@ -19,7 +19,8 @@ export class Kart extends TransformNode {
     private static readonly VELOCITY_DECAY_SCALAR: number = 2.0;
     private static readonly TURN_DECAY_SCALAR: number = 5.0;
     private static readonly BRAKE_SCALAR: number = 3.0;
-    private static readonly SLOW_DURATION: number = 2000;
+    private static readonly SLOW_DURATION: number = 3000;
+    private static readonly BOMB_DURATION: number = 2000;
     private static readonly BOOST_DURATION: number = 1000;
 
     private _velocity: Vector3 = Vector3.Zero();
@@ -38,6 +39,8 @@ export class Kart extends TransformNode {
     private _checkpoints: Vector3[];
     private _totalCheckpoints: number = 0;
     private _boostHitTime: number = 0;
+    private _slowHitTime: number = 0;
+    private _state: string = "ok";
 
     public TrackTime : string = "";
 
@@ -45,7 +48,8 @@ export class Kart extends TransformNode {
         super(kartName, scene);
 
         // this is a placeholder so that we actually spawn a Kart on game start.
-        this._mesh = KartEngine.instance.assets.kart.clone();
+        this._mesh = KartEngine.instance.assets.kart.clone("model");
+        this._mesh.getChildMeshes().forEach(child => child.isPickable = false);
         KartEngine.instance.scene.addMesh(this._mesh)
         this._mesh.parent = this;
         this._locallyOwned = locallyOwned;
@@ -156,14 +160,42 @@ export class Kart extends TransformNode {
         var forward = Vector3.Cross(this.right, this._filteredUp);
         var right = Vector3.Cross(this._filteredUp, forward);
         this.rotationQuaternion = Quaternion.RotationQuaternionFromAxis(right, this._filteredUp, forward);
+    }
+
+    private checkHazardCollision(name: string): number {
+        const radiusCollision = 2;
+
+        const hazards = (KartEngine.instance.scene as any).getTransformNodeByName(name);
+
+        if (hazards == null)
+        {
+            return -1;
+        }
+
+        const bombs = hazards.getChildMeshes();
+
+        for (var index = 0; index < bombs.length; ++index) 
+        {
+            const position = bombs[index].position;
+            const distance = this.position.subtract(position).length();
+            if (distance < radiusCollision)
+            {
+                return index;
+            }
+        }
+
+        return -1;
+    }
+
+    private updateFromHazards(): void {
         let collisionId = this.checkHazardCollision("bombs");
-        
         if (collisionId != -1 && collisionId != this._lastHazard)
         {
             this._velocity.set(0.0, 1.2, 0.0);
             this._lastHazard = collisionId;
             this._bombHitTime = (new Date).getTime();
             this._velocityFactor = 0.5;
+            this._state = "exploded";
         }
 
         collisionId = this.checkHazardCollision("boosts"); 
@@ -172,6 +204,7 @@ export class Kart extends TransformNode {
             this._lastHazard = collisionId;
             this._boostHitTime = (new Date).getTime();
             this._velocityFactor = 1.6;
+            this._state = "fast";
         }
 
         collisionId = this.checkHazardCollision("bumpers"); 
@@ -202,33 +235,15 @@ export class Kart extends TransformNode {
             
             this._lastHazard = collisionId;
         }
-
-    }
-
-    private checkHazardCollision(name: string): number
-    {
-        const radiusCollision = 2;
-
-        const hazards = (KartEngine.instance.scene as any).getTransformNodeByName(name);
-
-        if (hazards == null)
+        collisionId = this.checkHazardCollision("poison"); 
+        if (collisionId != -1 && collisionId != this._lastHazard)
         {
-            return -1
+            this._velocity.set(0.0, 0.0, 0.0);
+            this._lastHazard = collisionId;
+            this._slowHitTime = (new Date).getTime();
+            this._velocityFactor = 0.1;
+            this._state = "slow";
         }
-
-        const bombs = hazards.getChildMeshes();
-
-        for (var index = 0; index < bombs.length; ++index) 
-        {
-            const position = bombs[index].position;
-            const distance = this.position.subtract(position).length();
-            if (distance < radiusCollision)
-            {
-                return index;
-            }
-        }
-        return -1;
-        
     }
 
     private getForward(): number {
@@ -293,24 +308,24 @@ export class Kart extends TransformNode {
     private beforeRenderUpdate(): void {
         this._deltaTime = Engine.Instances[0].getDeltaTime() / 1000.0;
         
-        if (this._velocityFactor < 1 && (new Date).getTime() - this._bombHitTime > Kart.SLOW_DURATION)
+        if ((this._state == "exploded" && (new Date).getTime() - this._bombHitTime > Kart.BOMB_DURATION)
+        || (this._state == "fast" && (new Date).getTime() - this._boostHitTime > Kart.BOOST_DURATION)
+        || (this._state == "slow" && (new Date).getTime() - this._slowHitTime > Kart.SLOW_DURATION))
         {
             this._velocityFactor = 1;
+            this._state = "ok";
         }
 
         if(this._hits < this._checkpoints.length)
         {
             this.updateFromTrackProgress();
         }
-
-        if (this._velocityFactor > 1 && (new Date).getTime() - this._boostHitTime > Kart.BOOST_DURATION)
-        {
-            this._velocityFactor = 1;
-        }
       
+        this.updateFromTrackProgress();      
         this.updateFromPhysics();
+        this.updateFromHazards();
 
-        if (this._velocityFactor >= 1 )
+        if (this._state != "exploded")
         {
             this.updateFromControls();
         }

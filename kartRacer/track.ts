@@ -1,24 +1,35 @@
 import { Vector3, Curve3, RibbonBuilder, PBRMaterial, Texture, Tools, Scene, TransformNode, Mesh, Scalar } from "@babylonjs/core";
 import { KartEngine } from "./engine";
 
+interface ITrackPoint {
+    point: Vector3;
+    forward: Vector3;
+    up: Vector3;
+    right: Vector3;
+    leftEdge: Vector3;
+    rightEdge: Vector3;
+    leftApron: Vector3;
+    rightApron: Vector3;
+}
+
 export class Track {
     public readonly startPoint: Vector3;
     public readonly startTarget: Vector3;
-    public readonly trackPoints: Vector3[];
+    public readonly controlPoints: Vector3[];
 
     private _varianceSeed: number;
 
     constructor(scene: Scene, options: { radius: number, numPoints: number, varianceSeed: number, lateralVariance: number, heightVariance: number, width: number }) {
         this._varianceSeed = options.varianceSeed;
 
-        const controlPoints = this.getTrackPoints(
+        const controlPoints = this.getTrackControlPoints(
             options.numPoints,
             options.radius,
             options.lateralVariance,
             options.heightVariance
         );
 
-        this.trackPoints = controlPoints;
+        this.controlPoints = controlPoints;
 
         const curvatureFactor = Math.ceil((options.radius + options.lateralVariance + options.heightVariance) * 0.05);
 
@@ -44,7 +55,7 @@ export class Track {
         const apronAngle = Tools.ToRadians(15);
         const apronLengthPrecentage = 0.15;
 
-        const pathArray = new Array<Array<Vector3>>(points.length);
+        const trackPoints = new Array<ITrackPoint>(points.length);
         for (let index = 0; index < points.length; ++index) {
             const point = points[index];
             const forward = getForward(index);
@@ -53,74 +64,34 @@ export class Track {
             const edge = right.scale(options.width * (0.5 - apronLengthPrecentage));
             const apron1 = edge.add(right.scale(options.width * apronLengthPrecentage * Math.cos(apronAngle)));
             const apron2 = up.scale(options.width * apronLengthPrecentage * Math.sin(apronAngle));
-            pathArray[index] = [
-                point.add(apron1).addInPlace(apron2),
-                point.add(edge),
-                point.add(edge),
-                point.subtract(edge),
-                point.subtract(edge),
-                point.subtract(apron1).addInPlace(apron2),
-            ];
+            const leftEdge = point.subtract(edge);
+            const leftApron = point.subtract(apron1).addInPlace(apron2);
+            const rightApron = point.add(apron1).addInPlace(apron2);
+            const rightEdge = point.add(edge);
+            trackPoints[index] = {
+                point: point,
+                forward: forward,
+                up: up,
+                right: right,
+                leftEdge: leftEdge,
+                rightEdge: rightEdge,
+                leftApron: leftApron,
+                rightApron: rightApron
+            };
         }
 
-        const track = this.createTrack(scene, pathArray, options.width, curve.length());
-        this.createGoal(scene, pathArray);
-
-        const trees = new TransformNode("trees", scene);
-        trees.parent = track;
-        const treePoints = this.getTreePoints(0.9, 1.0, 0.5, pathArray);
-        for (const treePoint of treePoints) {
-            const tree = KartEngine.instance.assets.tree.createInstance("tree");
-            tree.position.copyFrom(treePoint);
-            tree.parent = trees;
-        }
-
-        const hazardPoints = this.getHazardPoints(1.5, .15, 1.0, 0.5, pathArray);
-        const bombHazards = new TransformNode("bombs", scene);
-        bombHazards.parent = track;
-        const boostHazards = new TransformNode("boosts", scene);
-        boostHazards.parent = track;
-        const bumperHazards = new TransformNode("bumpers", scene);
-        bumperHazards.parent = track;
-
-        const hazardScale = 4;
-        
-        for (const hazardPoint of hazardPoints) {
-            
-            const hazardType =  this.random();
-            if (hazardType < .33){
-                const bomb = KartEngine.instance.assets.bomb.createInstance("bomb");
-                bomb.scaling.scaleInPlace(hazardScale);
-                const rotationY = this.random() * Scalar.TwoPi;
-                bomb.addRotation(0, rotationY, 0);
-                bomb.position.copyFrom(hazardPoint);
-                bomb.parent = bombHazards;
-            }
-            else if (hazardType < .66) {
-                const boost = KartEngine.instance.assets.boost.createInstance("boost");
-                boost.scaling.scaleInPlace(hazardScale);
-                const rotationY = this.random() * Scalar.TwoPi;
-                boost.addRotation(0, rotationY, 0);
-                boost.position.copyFrom(hazardPoint);
-                boost.parent = boostHazards;
-            }
-            else {
-                const bumper = KartEngine.instance.assets.bumper.createInstance("bumper");
-                bumper.scaling.scaleInPlace(hazardScale);
-                const rotationY = this.random() * Scalar.TwoPi;
-                bumper.addRotation(0, rotationY, 0);
-                bumper.position.copyFrom(hazardPoint);
-                bumper.parent = bumperHazards;
-            }
-        }
+        const track = this.createTrack(scene, trackPoints, options.width, curve.length());
+        this.createGoal(scene, trackPoints, track);
+        this.createTrees(scene, trackPoints, track);
+        this.createHazards(scene, trackPoints, track);
 
         this.startPoint = getPoint(0);
         this.startTarget = getPoint(1);
     }
 
-    private createTrack(scene: Scene, pathArray: Array<Array<Vector3>>, width: number, length: number): Mesh {
+    private createTrack(scene: Scene, trackPoints: Array<ITrackPoint>, width: number, length: number): Mesh {
         const track = RibbonBuilder.CreateRibbon("track", {
-            pathArray: pathArray
+            pathArray: trackPoints.map(p => [p.rightApron, p.rightEdge, p.rightEdge, p.leftEdge, p.leftEdge, p.leftApron])
         });
 
         const material = new PBRMaterial("track", scene);
@@ -153,18 +124,20 @@ export class Track {
         return track;
     }
 
-    private createGoal(scene: Scene, trackPathArray: Array<Array<Vector3>>): void {
-        const percent = .015;
-        const limit = Math.round(trackPathArray.length * percent);
+    private createGoal(scene: Scene, trackPoints: Array<ITrackPoint>, track: Mesh): void {
+        const percent = 0.015;
+        const limit = Math.round(trackPoints.length * percent);
 
-        const goalPathArray = new Array<Array<Vector3>>();
+        const pathArray = new Array<Array<Vector3>>();
         for (let index = 0; index < limit; ++index) {
-            goalPathArray.push([trackPathArray[index][2], trackPathArray[index][3]]);
+            pathArray.push([trackPoints[index].rightEdge, trackPoints[index].leftEdge]);
         }
 
         const goal = RibbonBuilder.CreateRibbon("goal", {
-            pathArray: goalPathArray
+            pathArray: pathArray
         });
+
+        goal.parent = track;
 
         const material = new PBRMaterial("goal", scene);
         material.metallic = 0;
@@ -174,15 +147,69 @@ export class Track {
 
         const albedoTexture = new Texture("public/textures/goal_basecolor.png", scene);
         material.albedoTexture = albedoTexture;
+
         goal.material = material;
+
+        goal.parent = track;
     }
 
-    private getHazardPoints(height: number, density: number, radius: number, minDistance: number, pathArray: Array<Array<Vector3>>): Array<Vector3> {
+    private createTrees(scene: Scene, trackPoints: Array<ITrackPoint>, track: Mesh): void {
+        const trees = new TransformNode("trees", scene);
+        trees.parent = track;
+        const treePoints = this.getTreePoints(0.9, 1.0, 0.5, trackPoints);
+        for (const treePoint of treePoints) {
+            const tree = KartEngine.instance.assets.tree.createInstance("tree");
+            tree.isPickable = false;
+            tree.position.copyFrom(treePoint);
+            tree.parent = trees;
+        }
+    }
+
+    private createHazards(scene: Scene, trackPoints: Array<ITrackPoint>, track: Mesh): void {
+        const hazardPoints = this.getHazardPoints(1.5, 0.1, trackPoints);
+
+        const bombHazards = new TransformNode("bombs", scene);
+        bombHazards.parent = track;
+        const boostHazards = new TransformNode("boosts", scene);
+        boostHazards.parent = track;
+        const bumperHazards = new TransformNode("bumpers", scene);
+        bumperHazards.parent = track;
+        const poisonHazards = new TransformNode("poisons", scene);
+        poisonHazards.parent = track;
+
+        function createHazard(name: string, mesh: Mesh, point: Vector3, rotationY: number, group: TransformNode): void {
+            const hazardScale = 4;
+            const instance = mesh.createInstance(name);
+            instance.scaling.scaleInPlace(hazardScale);
+            instance.addRotation(0, rotationY, 0);
+            instance.position.copyFrom(point);
+            instance.parent = group;
+        }
+
+        for (const hazardPoint of hazardPoints) {
+            const hazardType = this.random();
+            const rotationY = this.random();
+            if (hazardType < 0.25) {
+                createHazard("bomb", KartEngine.instance.assets.bomb, hazardPoint, rotationY, bombHazards);
+            }
+            else if (hazardType < 0.50) {
+                createHazard("boost", KartEngine.instance.assets.boost, hazardPoint, rotationY, boostHazards);
+            }
+            else if (hazardType < 0.75) {
+                createHazard("bumper", KartEngine.instance.assets.bumper, hazardPoint, rotationY, bumperHazards);
+            }
+            else {
+                createHazard("poison", KartEngine.instance.assets.poison, hazardPoint, rotationY, poisonHazards);
+            }
+        }
+    }
+
+    private getHazardPoints(height: number, density: number, trackPoints: Array<ITrackPoint>): Array<Vector3> {
         const hazardPoints = new Array<Vector3>();
         const percentageDistanceFromSides = .1;
-        for (var index = 0; index < pathArray.length; ++index) {
-            const leftSide = pathArray[index][2];
-            const rightSide = pathArray[index][3];
+        for (const trackPoint of trackPoints) {
+            const leftSide = trackPoint.leftEdge;
+            const rightSide = trackPoint.rightEdge;
 
             const direction = rightSide.subtract(leftSide);
             if (this.random() < density) {
@@ -195,7 +222,7 @@ export class Track {
         return hazardPoints;
     }
 
-    private getTrackPoints(numPoints: number, radius: number, lateralVariance: number, heightVariance: number): Array<Vector3> {
+    private getTrackControlPoints(numPoints: number, radius: number, lateralVariance: number, heightVariance: number): Array<Vector3> {
         const points = new Array<Vector3>(numPoints);
         for (let index = 0; index < numPoints; ++index) {
             const rPert = lateralVariance;
@@ -209,14 +236,13 @@ export class Track {
         return points;
     }
 
-    private getTreePoints(density: number, radius: number, minDistance: number, pathArray: Array<Array<Vector3>>): Array<Vector3> {
+    private getTreePoints(density: number, radius: number, minDistance: number, trackPoints: Array<ITrackPoint>): Array<Vector3> {
         const trees: Array<Vector3> = [];
-        for (var index = 0; index < pathArray.length; ++index) {
+        for (const trackPoint of trackPoints) {
+            const leftSide = trackPoint.leftEdge;
+            const rightSide = trackPoint.rightEdge;
 
-            const leftSide = pathArray[index][2];
-            const rightSide = pathArray[index][3];
-
-            let direction = rightSide.subtract(leftSide);
+            const direction = rightSide.subtract(leftSide);
             direction.y = 0;
 
             if (this.random() < density) {
@@ -230,32 +256,35 @@ export class Track {
             }
         }
 
-        // Delete trees that were were generated too close to the track.
+        // Delete trees that are generated too close to each other or to the track.
+        const minDistanceSquared = minDistance * minDistance;
         const spacedTrees: Array<Vector3> = [];
-        for (var index = 0; index < trees.length - 1; ++index) {
+        for (const tree of trees) {
             let isSpaced = true;
-            for (var j = 0; j < spacedTrees.length; ++j) {
-                const distanceBetween = trees[index].subtract(spacedTrees[j]).length();
-                if (distanceBetween < minDistance) {
+
+            for (const spacedTree of spacedTrees) {
+                if (Vector3.DistanceSquared(tree, spacedTree) < minDistanceSquared) {
                     isSpaced = false;
                     break;
                 }
             }
 
-            for (var j = 0; j < pathArray.length; ++j) {
-                for (var k = 0; k < pathArray[j].length; ++k) {
-                    const distanceBetween = trees[index].subtract(pathArray[j][k]).length();
-                    if (distanceBetween < minDistance) {
-                        isSpaced = false;
-                        break;
-                    }
+            for (const trackPoint of trackPoints) {
+                if (Vector3.DistanceSquared(tree, trackPoint.leftApron) < minDistanceSquared ||
+                    Vector3.DistanceSquared(tree, trackPoint.leftEdge) < minDistanceSquared ||
+                    Vector3.DistanceSquared(tree, trackPoint.point) < minDistanceSquared ||
+                    Vector3.DistanceSquared(tree, trackPoint.rightEdge) < minDistanceSquared ||
+                    Vector3.DistanceSquared(tree, trackPoint.rightApron) < minDistanceSquared) {
+                    isSpaced = false;
+                    break;
                 }
             }
 
             if (isSpaced) {
-                spacedTrees.push(trees[index]);
+                spacedTrees.push(tree);
             }
         }
+
         return spacedTrees;
     }
 
