@@ -311,6 +311,9 @@ export class Kart extends TransformNode {
 
     private beforeRenderUpdate(): void {
         this._deltaTime = Engine.Instances[0].getDeltaTime() / 1000.0;
+        if(this._deltaTime > 0.3){
+            return;
+        }
         
         if ((this._state == "exploded" && (new Date).getTime() - this._bombHitTime > Kart.BOMB_DURATION)
         || (this._state == "fast" && (new Date).getTime() - this._boostHitTime > Kart.BOOST_DURATION)

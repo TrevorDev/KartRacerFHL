@@ -57,6 +57,9 @@ io.on('connection', function(socket:(sio.Socket & {customData:any})){
         })
     })
     socket.on("raceComplete", (e)=>{
+        if(!rooms[socket.customData.roomName]){
+            return;
+        }
         console.log(e.raceId, rooms[socket.customData.roomName].raceId)
         if(e.raceId == rooms[socket.customData.roomName].raceId){
             rooms[socket.customData.roomName].raceId++; 
