@@ -164,7 +164,7 @@ export class Track {
         const goalArray = new Array<Array<Vector3>>();
 
         for (var index = 0; index < limit; ++index) {
-            goalArray.push([pathArray[index][1], pathArray[index][2]]);
+            goalArray.push([pathArray[index][2], pathArray[index][3]]);
         }
 
         return goalArray;
