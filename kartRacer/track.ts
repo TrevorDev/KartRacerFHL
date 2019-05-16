@@ -81,18 +81,8 @@ export class Track {
         }
 
         const track = this.createTrack(scene, trackPoints, options.width, curve.length());
-
         this.createGoal(scene, trackPoints, track);
-
-        const trees = new TransformNode("trees", scene);
-        trees.parent = track;
-        const treePoints = this.getTreePoints(0.9, 1.0, 0.5, trackPoints);
-        for (const treePoint of treePoints) {
-            const tree = KartEngine.instance.assets.tree.createInstance("tree");
-            tree.position.copyFrom(treePoint);
-            tree.parent = trees;
-        }
-
+        this.createTrees(scene, trackPoints, track);
         this.createHazards(scene, trackPoints, track);
 
         this.startPoint = getPoint(0);
@@ -161,6 +151,18 @@ export class Track {
         goal.material = material;
 
         goal.parent = track;
+    }
+
+    private createTrees(scene: Scene, trackPoints: Array<ITrackPoint>, track: Mesh): void {
+        const trees = new TransformNode("trees", scene);
+        trees.parent = track;
+        const treePoints = this.getTreePoints(0.9, 1.0, 0.5, trackPoints);
+        for (const treePoint of treePoints) {
+            const tree = KartEngine.instance.assets.tree.createInstance("tree");
+            tree.isPickable = false;
+            tree.position.copyFrom(treePoint);
+            tree.parent = trees;
+        }
     }
 
     private createHazards(scene: Scene, trackPoints: Array<ITrackPoint>, track: Mesh): void {
