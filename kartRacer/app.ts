@@ -10,7 +10,7 @@ import { Skybox } from './skybox';
 // Create game engine
 var kartEngine = new KartEngine();
 var initMP = false;
-var menu : Menu = null;
+var menu: Menu = null;
 
 var main = async () => {
     await kartEngine.initializeFullSceenApp();
@@ -42,13 +42,12 @@ var main = async () => {
     var multiplayer = new Multiplayer(kartEngine.scene);
 
     var gameStarted = false;
-    billboard.onGameStartObservable.addOnce(()=>{
-        let checkpoints : Set<Vector3> = new Set<Vector3>();
+    billboard.onGameStartObservable.addOnce(() => {
+        let checkpoints: Set<Vector3> = new Set<Vector3>();
 
-        track.controlPoints.forEach(function (value)
-        {
+        for (const value of track.controlPoints) {
             checkpoints.add(value);;
-        });
+        }
 
         kartEngine.kart.initializeTrackProgress(checkpoints, startingPosition);
 
@@ -66,7 +65,7 @@ var main = async () => {
         menu.EnableHud();
         kartEngine.kart.assignKartName(billboard.getRacerName());
         menu.StartTimer();
-        gameStarted=true;
+        gameStarted = true;
     })
 
     // Main render loop
@@ -74,9 +73,8 @@ var main = async () => {
         if (gameStarted) {
             multiplayer.update();
             menu.UpdateHUD(kartEngine.kart.getTrackComplete());
-            if(kartEngine.kart.getTrackComplete() == 100)
-            {
-                menu.StopTimer();
+            if (kartEngine.kart.getTrackComplete() == 100 && kartEngine.kart.TrackTime.length == 0) {
+                kartEngine.kart.TrackTime = menu.StopTimer();
             }
         }
     })

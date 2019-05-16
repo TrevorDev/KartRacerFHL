@@ -19,7 +19,8 @@ export class Kart extends TransformNode {
     private static readonly VELOCITY_DECAY_SCALAR: number = 2.0;
     private static readonly TURN_DECAY_SCALAR: number = 5.0;
     private static readonly BRAKE_SCALAR: number = 3.0;
-    private static readonly SLOW_DURATION: number = 2000;
+    private static readonly SLOW_DURATION: number = 3000;
+    private static readonly BOMB_DURATION: number = 2000;
     private static readonly BOOST_DURATION: number = 1000;
 
     private _velocity: Vector3 = Vector3.Zero();
@@ -38,6 +39,10 @@ export class Kart extends TransformNode {
     private _checkpoints: Set<Vector3> = new Set<Vector3>();
     private _totalCheckpoints: number = 0;
     private _boostHitTime: number = 0;
+    private _slowHitTime: number = 0;
+    private _state: string = "ok";
+
+    public TrackTime : string = "";
 
     constructor(kartName: string, scene: Scene, locallyOwned: boolean = true) {
         super(kartName, scene);
@@ -99,6 +104,11 @@ export class Kart extends TransformNode {
         return Math.round(this._hits / this._totalCheckpoints * 100);
     }
 
+    public getKartName(): string
+    {
+        return this._kartName;
+    }
+
     private updateFromPhysics(): void {
         var ray = new Ray(this.position, this.up.scale(-1.0), 0.7);
         var hit = KartEngine.instance.scene.pickWithRay(ray);
@@ -150,13 +160,13 @@ export class Kart extends TransformNode {
         var right = Vector3.Cross(this._filteredUp, forward);
         this.rotationQuaternion = Quaternion.RotationQuaternionFromAxis(right, this._filteredUp, forward);
         let collisionId = this.checkHazardCollision("bombs");
-        
         if (collisionId != -1 && collisionId != this._lastHazard)
         {
             this._velocity.set(0.0, 1.2, 0.0);
             this._lastHazard = collisionId;
             this._bombHitTime = (new Date).getTime();
             this._velocityFactor = 0.5;
+            this._state = "exploded";
         }
 
         collisionId = this.checkHazardCollision("boosts"); 
@@ -165,6 +175,7 @@ export class Kart extends TransformNode {
             this._lastHazard = collisionId;
             this._boostHitTime = (new Date).getTime();
             this._velocityFactor = 1.6;
+            this._state = "fast";
         }
 
         collisionId = this.checkHazardCollision("bumpers"); 
@@ -178,15 +189,33 @@ export class Kart extends TransformNode {
             direction.y =0;
             direction.normalize();
 
-            const speed = Math.max(this._velocity.length()*.5, 0.3);
+            const angle = Vector3.GetAngleBetweenVectors(this._velocity, direction, new Vector3(0,1,0));
+            if (angle> 2*Math.PI/3.0 && angle < 4*Math.PI/3.0 )
+            {
+                this._velocity.set(-this._velocity.x, this._velocity.y, -this._velocity.z);
+            }
+            else
+            {
+                const speed = Math.max(this._velocity.length()*.8, 0.3);
 
-            direction.scaleInPlace(this._velocity.length()*2);
-            this._velocity.addInPlace(direction);
-            this._velocity.normalize();
-            this._velocity.scaleInPlace(speed);
+                direction.scaleInPlace(this._velocity.length()*2);
+                this._velocity.addInPlace(direction);
+                this._velocity.normalize();
+                this._velocity.scaleInPlace(speed);
+            }
             
             this._lastHazard = collisionId;
         }
+        collisionId = this.checkHazardCollision("poison"); 
+        if (collisionId != -1 && collisionId != this._lastHazard)
+        {
+            this._velocity.set(0.0, 0.0, 0.0);
+            this._lastHazard = collisionId;
+            this._slowHitTime = (new Date).getTime();
+            this._velocityFactor = 0.1;
+            this._state = "slow";
+        }
+
 
     }
 
@@ -262,12 +291,9 @@ export class Kart extends TransformNode {
     private updateFromTrackProgress(): void {
         let i = 0
         let hit = false;
-        let hits = this._hits;
         let kartPos = this.position;
-        let checkpoints = this._checkpoints;
-        let startingPosition = this._initialPosition;
 
-        this._checkpoints.forEach(function (value)
+        for (const value of this._checkpoints)
         {
             let x = Math.abs(kartPos.x - value.x);
             let y = Math.abs(kartPos.y - value.y);
@@ -276,39 +302,33 @@ export class Kart extends TransformNode {
 
             if(!hit && x < rad && y < rad && z < rad)
             {
-                checkpoints.delete(value);
+                this._checkpoints.delete(value);
 
-                // HACK: Re-add initial checkpoint because we clear it by default
-                if (hits == 2)
+                if (this._hits == 2)
                 {
-                    checkpoints.add(startingPosition);
+                    this._checkpoints.add(this._initialPosition);
                 }
 
-                hits++;
+                this._hits++;
             }
-        });
-
-        this._hits = hits;
+        }
     }
 
     private beforeRenderUpdate(): void {
         this._deltaTime = Engine.Instances[0].getDeltaTime() / 1000.0;
         
-        if (this._velocityFactor < 1 && (new Date).getTime() - this._bombHitTime > Kart.SLOW_DURATION)
+        if ((this._state == "exploded" && (new Date).getTime() - this._bombHitTime > Kart.BOMB_DURATION)
+        || (this._state == "fast" && (new Date).getTime() - this._boostHitTime > Kart.BOOST_DURATION)
+        || (this._state == "slow" && (new Date).getTime() - this._slowHitTime > Kart.SLOW_DURATION))
         {
             this._velocityFactor = 1;
+            this._state = "ok";
         }
 
-        this.updateFromTrackProgress();
-
-        if (this._velocityFactor > 1 && (new Date).getTime() - this._boostHitTime > Kart.BOOST_DURATION)
-        {
-            this._velocityFactor = 1;
-        }
-      
+        this.updateFromTrackProgress();      
         this.updateFromPhysics();
 
-        if (this._velocityFactor >= 1 )
+        if (this._state != "exploded")
         {
             this.updateFromControls();
         }

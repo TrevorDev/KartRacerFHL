@@ -8,6 +8,7 @@ export class Assets {
     public bomb: Mesh;
     public boost: Mesh;
     public bumper: Mesh;
+    public poison: Mesh;
     public engineSound: Sound;
     public music: Sound;
 
@@ -33,6 +34,12 @@ export class Assets {
         this.bomb = mergeMeshes("bomb", await this.loadAsset(assets, "/public/models/bomb/bomb.gltf"));
         this.boost = mergeMeshes("boost", await this.loadAsset(assets,  "/public/models/wing.glb"));
         this.bumper = mergeMeshes("bumper", await this.loadAsset(assets,  "/public/models/bumper.glb"));
+
+        const poison = await this.loadAsset(assets,  "/public/models/poison_cloud.glb");
+        this.poison = Mesh.MergeMeshes(poison.getChildMeshes() as Mesh[], undefined, undefined, undefined, undefined, true);
+        this.poison.name = "poison";
+        this.poison.parent = assets;
+        poison.dispose;
 
         this.engineSound = new Sound("Music", "/public/sounds/go.mp3", KartEngine.instance.scene, () => {
             this.engineSound.setVolume(0);
