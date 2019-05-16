@@ -21,7 +21,7 @@ var main = async () => {
         varianceSeed: 1,
         lateralVariance: 50,
         heightVariance: 20,
-        width: 25,
+        width: 35,
     });
     var skybox = new Skybox(kartEngine.scene);
 
