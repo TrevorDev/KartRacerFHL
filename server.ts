@@ -23,12 +23,13 @@ io.on('connection', function(socket:(sio.Socket & {customData:any})){
     socket.on("joinRoom", (e)=>{
         if(!rooms[e.roomName]){
             rooms[e.roomName] = {
-                users: []
+                users: [],
+                raceId: 0
             }
         }
         socket.customData.roomName = e.roomName;
         rooms[socket.customData.roomName].users.push(socket)
-        socket.emit("joinRoomComplete", {id: socket.id, pingMS: pingMS})
+        socket.emit("joinRoomComplete", {id: socket.id, pingMS: pingMS, raceId: rooms[socket.customData.roomName].raceId})
     })
     socket.on("updateKartPose", (pose)=>{
         socket.customData.position.x = pose.position.x
@@ -54,6 +55,18 @@ io.on('connection', function(socket:(sio.Socket & {customData:any})){
         rooms[socket.customData.roomName].users.forEach((s:(sio.Socket & {customData:any}))=>{
             s.emit("userDisconnected", socket.id)
         })
+    })
+    socket.on("raceComplete", (e)=>{
+        console.log(e.raceId, rooms[socket.customData.roomName].raceId)
+        if(e.raceId == rooms[socket.customData.roomName].raceId){
+            rooms[socket.customData.roomName].raceId++; 
+            rooms[socket.customData.roomName].users.forEach((s:(sio.Socket & {customData:any}))=>{
+                s.emit("raceComplete", {raceId: rooms[socket.customData.roomName].raceId, winnerName: e.name})
+            })
+            
+        }
+        console.log("race reset")
+
     })
 });
 

@@ -36,6 +36,8 @@ export class Kart extends TransformNode {
     private _bombHitTime: number = 0;
     private _velocityFactor: number = 1;
     private _initialPosition: Vector3;
+
+    private _initialLookAt: Vector3;
     private _checkpoints: Vector3[];
     private _totalCheckpoints: number = 0;
     private _boostHitTime: number = 0;
@@ -93,9 +95,10 @@ export class Kart extends TransformNode {
         this._kartName = name;
     }
 
-    public initializeTrackProgress(checkpoints: Vector3[], startingPosition: Vector3): void
+    public initializeTrackProgress(checkpoints: Vector3[], startingPosition: Vector3, startingLookAt: Vector3): void
     {
         this._initialPosition = startingPosition;
+        this._initialLookAt = startingLookAt;
         this._checkpoints = checkpoints;
         this._totalCheckpoints = checkpoints.length;
     }
@@ -341,4 +344,15 @@ export class Kart extends TransformNode {
         this._camera.parent = this;
         this.getScene().activeCamera = this._camera;
     }
+
+    public reset(){
+        this._hits = 0;
+        this._state = "ok";
+        this._velocity.set(0,0,0);
+        this._velocityFactor = 1;
+        this.position = this._initialPosition;
+        this.lookAt(this._initialLookAt);
+        this.computeWorldMatrix();
+    }
 }
+
