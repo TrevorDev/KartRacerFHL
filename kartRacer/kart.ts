@@ -320,8 +320,7 @@ export class Kart extends TransformNode {
         {
             this.updateFromTrackProgress();
         }
-      
-        this.updateFromTrackProgress();      
+     
         this.updateFromPhysics();
         this.updateFromHazards();
 
