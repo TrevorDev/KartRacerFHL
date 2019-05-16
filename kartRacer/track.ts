@@ -53,6 +53,8 @@ export class Track {
             pathArray[index] = [
                 point.add(apron1).addInPlace(apron2),
                 point.add(edge),
+                point.add(edge),
+                point.subtract(edge),
                 point.subtract(edge),
                 point.subtract(apron1).addInPlace(apron2),
             ];
@@ -141,8 +143,8 @@ export class Track {
         const hazardPoints = new Array<Vector3>();
         const percentageDistanceFromSides = .1;
         for (var index = 0; index < pathArray.length; ++index) {
-            const leftSide = pathArray[index][1];
-            const rightSide = pathArray[index][2];
+            const leftSide = pathArray[index][2];
+            const rightSide = pathArray[index][3];
 
             const direction = rightSide.subtract(leftSide);
             if (this.random() < density) {
@@ -186,8 +188,8 @@ export class Track {
         const trees: Array<Vector3> = [];
         for (var index = 0; index < pathArray.length; ++index) {
 
-            const leftSide = pathArray[index][1];
-            const rightSide = pathArray[index][2];
+            const leftSide = pathArray[index][2];
+            const rightSide = pathArray[index][3];
 
             let direction = rightSide.subtract(leftSide);
             direction.y = 0;
