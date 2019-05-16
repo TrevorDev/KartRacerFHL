@@ -1,6 +1,6 @@
 import { IKartInput } from "./input";
 import { KartEngine } from "./engine";
-import { Engine, Mesh, Scene, Vector3, Ray, Quaternion, Matrix, FreeCamera, TransformNode, Camera } from "@babylonjs/core";
+import { Engine, Mesh, Scene, Vector3, Ray, Quaternion, Matrix, FreeCamera, TransformNode, Camera, Scalar } from "@babylonjs/core";
 
 export class Kart extends TransformNode {
     private _mesh: Mesh;
@@ -165,6 +165,8 @@ export class Kart extends TransformNode {
 
         this.rotateAround(this.position, this.up, this._relocity);
 
+        
+        KartEngine.instance.assets.engineSound.setVolume(Scalar.Lerp(KartEngine.instance.assets.engineSound.getVolume(),this.getForward(), 0.1))
         this._velocity.addInPlace(this.forward.scale(this.getForward() * Kart.FORWARD_VELOCITY_SCALAR * this._velocityFactor * this._deltaTime));
 
         this._velocity.subtractInPlace(this.forward.scale(this.getBack() * this._deltaTime));
