@@ -20,29 +20,19 @@ export class Assets {
         this.kart.name = "kart";
         this.kart.scaling.scaleInPlace(0.01);
 
-        const tree = await this.loadAsset(assets, "/public/models/evergreen2/evergreen2.gltf");
-        this.tree = Mesh.MergeMeshes(tree.getChildMeshes() as Mesh[], undefined, undefined, undefined, undefined, true);
-        this.tree.name = "tree";
-        this.tree.parent = assets;
-        tree.dispose();
+        function mergeMeshes(name: string, asset: Mesh): Mesh {
+            const merged = Mesh.MergeMeshes(asset.getChildMeshes() as Mesh[], false, undefined, undefined, undefined, true);
+            merged.isPickable = false;
+            merged.name = name;
+            merged.parent = assets;
+            asset.dispose();
+            return merged;
+        }
 
-        const bomb = await this.loadAsset(assets, "/public/models/bomb/bomb.gltf");
-        this.bomb = Mesh.MergeMeshes(bomb.getChildMeshes() as Mesh[], undefined, undefined, undefined, undefined, true);
-        this.bomb.name = "bomb";
-        this.bomb.parent = assets;
-        bomb.dispose();
-
-        const boost = await this.loadAsset(assets,  "/public/models/wing.glb");
-        this.boost = Mesh.MergeMeshes(boost.getChildMeshes() as Mesh[], undefined, undefined, undefined, undefined, true);
-        this.boost.name = "boost";
-        this.boost.parent = assets;
-        boost.dispose;
-
-        const bumper = await this.loadAsset(assets,  "/public/models/bumper.glb");
-        this.bumper = Mesh.MergeMeshes(bumper.getChildMeshes() as Mesh[], undefined, undefined, undefined, undefined, true);
-        this.bumper.name = "bumper";
-        this.bumper.parent = assets;
-        bumper.dispose;
+        this.tree = mergeMeshes("tree", await this.loadAsset(assets, "/public/models/evergreen2/evergreen2.gltf"));
+        this.bomb = mergeMeshes("bomb", await this.loadAsset(assets, "/public/models/bomb/bomb.gltf"));
+        this.boost = mergeMeshes("boost", await this.loadAsset(assets,  "/public/models/wing.glb"));
+        this.bumper = mergeMeshes("bumper", await this.loadAsset(assets,  "/public/models/bumper.glb"));
 
         this.engineSound = new Sound("Music", "/public/sounds/go.mp3", KartEngine.instance.scene, () => {
             this.engineSound.setVolume(0);

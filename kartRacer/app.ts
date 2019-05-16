@@ -45,7 +45,7 @@ var main = async () => {
     billboard.onGameStartObservable.addOnce(()=>{
         let checkpoints : Set<Vector3> = new Set<Vector3>();
 
-        track.trackPoints.forEach(function (value)
+        track.controlPoints.forEach(function (value)
         {
             checkpoints.add(value);;
         });
