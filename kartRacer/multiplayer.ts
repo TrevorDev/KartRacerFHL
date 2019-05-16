@@ -1,5 +1,5 @@
 import { Kart } from './kart';
-import { Vector3, Nullable, Quaternion, Scene } from '@babylonjs/core';
+import { Vector3, Nullable, Quaternion, Scene, Scalar } from '@babylonjs/core';
 
 // Socket io
 declare var io: any;
@@ -7,8 +7,9 @@ declare var io: any;
 export class Multiplayer {
     public localId: string = "";
     public trackedObject: Nullable<{ position: Vector3, rotationQuaternion: Quaternion }>;
-    public trackedServerObjects: { [key: string]: { targetPose: { position: Vector3, rotation: Quaternion }, object: Nullable<{ position: Vector3, rotationQuaternion: Quaternion }> } } = {};
-
+    public trackedServerObjects: { [key: string]: { lastPose: { position: Vector3, rotation: Quaternion },targetPose: { position: Vector3, rotation: Quaternion }, object: Nullable<{ position: Vector3, rotationQuaternion: Quaternion }> } } = {};
+    public lastTime = new Date();
+    public pingMS = 1;
     constructor(public scene: Scene) {
     }
 
@@ -18,25 +19,30 @@ export class Multiplayer {
         socket.on("joinRoomComplete", (e) => {
             this.localId = e.id;
             this.trackedObject = trackedObject;
+            this.pingMS = e.pingMS
             this.repeat(() => {
                 if (this.trackedObject) {
                     socket.emit("updateKartPose", { position: this.trackedObject.position, rotation: this.trackedObject.rotationQuaternion })
                 }
-            }, 300)
+            }, e.pingMS)
 
             socket.on("serverUpdate", (e) => {
-                console.log("hit")
                 e.forEach((p: any) => {
                     if (p.id != this.localId) {
                         if (!this.trackedServerObjects[p.id]) {
                             this.trackedServerObjects[p.id] = {
+                                lastPose: { position: new Vector3(), rotation: new Quaternion() },
                                 targetPose: { position: new Vector3(), rotation: new Quaternion() },
                                 object: new Kart(p.id, this.scene, false),
                             }
                             this.trackedServerObjects[p.id].object.rotationQuaternion = new Quaternion();
                         }
+                        this.trackedServerObjects[p.id].lastPose.position.copyFrom(this.trackedServerObjects[p.id].targetPose.position)
+                        this.trackedServerObjects[p.id].lastPose.rotation.copyFrom(this.trackedServerObjects[p.id].targetPose.rotation)
+
                         this.trackedServerObjects[p.id].targetPose.position.copyFrom(p.position)
                         this.trackedServerObjects[p.id].targetPose.rotation.copyFrom(p.rotation)
+                        this.lastTime = new Date();
                     }
                 })
             })
@@ -57,11 +63,19 @@ export class Multiplayer {
     }
 
     public update() {
+        var curTime = new Date()
+        var ratio = Scalar.Clamp((curTime.getTime() - this.lastTime.getTime())/this.pingMS, 0, 1.1)
+        console.log(ratio)
         for (var key in this.trackedServerObjects) {
-            var diff = this.trackedServerObjects[key].targetPose.position.subtract(this.trackedServerObjects[key].object.position).scale(0.05)
-            this.trackedServerObjects[key].object.position.addInPlace(diff)
+            
 
-            Quaternion.SlerpToRef(this.trackedServerObjects[key].object.rotationQuaternion, this.trackedServerObjects[key].targetPose.rotation, 0.05, this.trackedServerObjects[key].object.rotationQuaternion);
+            Vector3.LerpToRef(this.trackedServerObjects[key].lastPose.position, this.trackedServerObjects[key].targetPose.position, ratio, this.trackedServerObjects[key].object.position)
+            Quaternion.SlerpToRef(this.trackedServerObjects[key].lastPose.rotation, this.trackedServerObjects[key].targetPose.rotation, ratio, this.trackedServerObjects[key].object.rotationQuaternion)
+
+            // var diff = this.trackedServerObjects[key].targetPose.position.subtract(this.trackedServerObjects[key].object.position).scale(0.05)
+            // this.trackedServerObjects[key].object.position.addInPlace(diff)
+
+            //Quaternion.SlerpToRef(this.trackedServerObjects[key].object.rotationQuaternion, this.trackedServerObjects[key].targetPose.rotation, 0.05, this.trackedServerObjects[key].object.rotationQuaternion);
         }
     }
 }

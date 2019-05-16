@@ -70,10 +70,16 @@ export class Track {
 
         const hazards = new TransformNode("hazards", scene);
         const hazardPoints = this.getHazardPoints(2, .1, 1.0, 0.5, pathArray);
+        const bombScale = 4;
         for (const hazardPoint of hazardPoints) {
-            const hazard = MeshBuilder.CreateBox("hazard", { size: 0.3 }, scene);
-            hazard.position.copyFrom(hazardPoint);
-            hazard.parent = hazards;
+            //const hazard = MeshBuilder.CreateBox("hazard", { size: 0.3 }, scene);
+
+            var bomb = KartEngine.instance.assets.bomb.clone("bomb");
+            bomb.scaling = new Vector3(bombScale,bombScale,bombScale);
+            const rotationY = this.random()*2*Math.PI;
+            bomb.addRotation(0,rotationY, 0);
+            bomb.position.copyFrom(hazardPoint)
+            bomb.parent = hazards;
         }
 
         this.startPoint = getPoint(0);
