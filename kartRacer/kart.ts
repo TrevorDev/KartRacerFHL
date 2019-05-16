@@ -346,4 +346,8 @@ export class Kart extends TransformNode {
         this._camera.parent = this;
         this.getScene().activeCamera = this._camera;
     }
+
+    public reset(){
+        this._hits = -1;
+    }
 }

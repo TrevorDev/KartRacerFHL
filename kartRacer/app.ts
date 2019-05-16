@@ -76,6 +76,10 @@ var main = async () => {
             if (kartEngine.kart.getTrackComplete() == 100 && kartEngine.kart.TrackTime.length == 0) {
                 kartEngine.kart.TrackTime = menu.StopTimer();
             }
+
+            if(kartEngine.kart.getTrackComplete() == 100){
+                multiplayer.raceComplete(billboard.getRacerName());
+            }
         }
     })
 }
