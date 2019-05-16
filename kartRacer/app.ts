@@ -1,7 +1,7 @@
 import { Kart } from './kart';
 import { KartEngine } from "./engine";
 import { Track } from './track';
-import { Vector3, Quaternion, FreeCamera } from "@babylonjs/core";
+import { Vector3, Quaternion, FreeCamera, Mesh, CubeMapToSphericalPolynomialTools, StandardMaterial } from "@babylonjs/core";
 import { Multiplayer } from "./multiplayer";
 import { Billboard } from "./billboard";
 import { Menu } from './menu';
@@ -48,25 +48,37 @@ var main = async () => {
     // Main render loop
     kartEngine.scene.onBeforeRenderObservable.add(() => {
         if (Billboard.startGame && !initMP) {
-            // Initialize Multiplayer
+            let checkpoints : Set<Vector3> = new Set<Vector3>();
+
+            track.trackPoints.forEach(function (value)
+            {
+                checkpoints.add(value);;
+            });
+
+            kartEngine.kart.initializeTrackProgress(checkpoints, startingPosition);
 
             let camera = kartEngine.kart.activateKartCamera();
             kartEngine.kart.position = startingPosition;
             kartEngine.kart.lookAt(startingRotation);
             kartEngine.kart.computeWorldMatrix();
 
+            // Initialize Multiplayer
             multiplayer.connectToRoom("testRoom", kartEngine.kart);
             multiplayer.trackedObject = camera;
 
             initMP = true;
             menu = new Menu(camera, kartEngine.scene);
             menu.EnableHud();
-
+            kartEngine.kart.assignKartName(billboard.getRacerName());
             menu.StartTimer();
         }
         else if (Billboard.startGame && initMP) {
             multiplayer.update();
-            menu.UpdateHUD();
+            menu.UpdateHUD(kartEngine.kart.getTrackComplete());
+            if(kartEngine.kart.getTrackComplete() == 100)
+            {
+                menu.StopTimer();
+            }
         }
     })
 }
