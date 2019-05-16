@@ -50,6 +50,8 @@ var main = async () => {
         kartEngine.kart.initializeTrackProgress(checkpoints, startingPosition, startingRotation);
 
         let camera = kartEngine.kart.activateKartCamera();
+        menu = new Menu(camera, kartEngine.scene);
+        kartEngine.kart.PlayerMenu = menu;
         kartEngine.kart.reset();
 
         // Initialize Multiplayer
@@ -57,8 +59,6 @@ var main = async () => {
         multiplayer.trackedObject = camera;
 
         initMP = true;
-        menu = new Menu(camera, kartEngine.scene);
-        multiplayer.setMenu(menu);
         menu.EnableHud();
         kartEngine.kart.assignKartName(billboard.getRacerName());
         menu.StartTimer();

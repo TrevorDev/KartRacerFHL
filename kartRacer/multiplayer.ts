@@ -14,7 +14,6 @@ export class Multiplayer {
     public pingMS = 1;
     private _raceId = 0;
     private _socket:SocketIO.Socket;
-    private _playerMenu : Menu;
 
     constructor(public scene: Scene) {
     }
@@ -62,12 +61,8 @@ export class Multiplayer {
             })
 
             socket.on("raceComplete", (info) => {
-                this._playerMenu.SetWinText("GG!  The winner is\n" + info.winnerName);
                 this._raceId = info.raceId;
-                Tools.DelayAsync(3000).then(() => {
-                    KartEngine.instance.kart.reset();
-                    this._playerMenu.SetWinText("");
-                });
+                KartEngine.instance.kart.reset();
             })
         })
     }
@@ -77,11 +72,6 @@ export class Multiplayer {
         setTimeout(() => {
             this.repeat(fn, ms);
         }, ms);
-    }
-
-    public setMenu(playerMenu : Menu)
-    {
-        this._playerMenu = playerMenu;
     }
 
     public update() {
@@ -102,7 +92,8 @@ export class Multiplayer {
 
     public raceComplete(name:string){
         console.log("hit")
-        this._socket.emit("raceComplete", {name: name, raceId: this._raceId})
+        KartEngine.instance.kart.PlayerMenu.SetWinText("GG!  The winner is\n" + name);
+        this._socket.emit("raceComplete", {name: name, raceId: this._raceId});
     }
 }
 

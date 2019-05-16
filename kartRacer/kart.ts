@@ -1,7 +1,8 @@
 import { IKartInput } from "./input";
 import { KartEngine } from "./engine";
-import { Engine, Mesh, Scene, Vector3, Ray, Quaternion, FreeCamera, TransformNode, StandardMaterial, Scalar } from "@babylonjs/core";
+import { Engine, Mesh, Scene, Vector3, Ray, Quaternion, FreeCamera, TransformNode, StandardMaterial, Scalar, Tools } from "@babylonjs/core";
 import { AdvancedDynamicTexture, StackPanel, TextBlock } from "@babylonjs/gui";
+import { Menu } from "./menu";
 
 export class Kart extends TransformNode {
     private _mesh: Mesh;
@@ -45,6 +46,7 @@ export class Kart extends TransformNode {
     private _state: string = "ok";
 
     public TrackTime : string = "";
+    public PlayerMenu : Menu;
 
     constructor(kartName: string, scene: Scene, locallyOwned: boolean = true) {
         super(kartName, scene);
@@ -359,6 +361,9 @@ export class Kart extends TransformNode {
         this.position = this._initialPosition;
         this.lookAt(this._initialLookAt);
         this.computeWorldMatrix();
+        Tools.DelayAsync(3000).then(() => {
+            this.PlayerMenu.SetWinText("");
+        });
     }
 }
 
