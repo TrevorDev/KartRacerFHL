@@ -4,6 +4,7 @@ import { KartEngine } from "./engine";
 export class Track {
     public readonly startPoint: Vector3;
     public readonly startTarget: Vector3;
+    public readonly trackPoints: Vector3[];
 
     private _varianceSeed: number;
 
@@ -16,6 +17,8 @@ export class Track {
             options.lateralVariance,
             options.heightVariance
         );
+
+        this.trackPoints = controlPoints;
 
         const curvatureFactor = Math.ceil((options.radius + options.lateralVariance + options.heightVariance) * 0.05);
 
