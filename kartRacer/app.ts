@@ -53,12 +53,16 @@ var main = async () => {
         kartEngine.kart.PlayerMenu = menu;
         kartEngine.kart.reset();
 
+        // Save racer name to local storage
+        const racerName = billboard.getRacerName();
+        localStorage.setItem("KartRacer.PlayerName", racerName);
+
         // Initialize Multiplayer
-        multiplayer.connectToRoom("testRoom", billboard.getRacerName(), kartEngine.kart);
+        multiplayer.connectToRoom("testRoom", racerName, kartEngine.kart);
         multiplayer.trackedObject = camera;
         
         menu.EnableHud();
-        kartEngine.kart.assignKartName(billboard.getRacerName());
+        kartEngine.kart.assignKartName(racerName);
         gameStarted = true;
     })
 

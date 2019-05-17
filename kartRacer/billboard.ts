@@ -80,6 +80,14 @@ export class Billboard {
         billBoardBase.setParent(root);
         billBoardPanel.setParent(root);
 
+        // Get racer name from local storage if available
+        if (typeof localStorage === "object") {
+             const value = localStorage.getItem("KartRacer.PlayerName");
+             if (value) {
+                 racerName.text = value;
+             }
+        }
+
         this._racerName = racerName;
         this._root = root
     }
@@ -90,11 +98,12 @@ export class Billboard {
 
     public getRacerName(): string
     {
-        if(this._racerName.text.length == 0)
+        if (this._racerName.text.length == 0)
         {
             let num = Math.floor(Math.random() * 10000);
             this._racerName.text = ("kart_" + num);
         }
+ 
         return this._racerName.text;
     }
 }
