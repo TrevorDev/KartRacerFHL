@@ -1,6 +1,6 @@
 import { IKartInput } from "./input";
 import { KartEngine } from "./engine";
-import { Engine, Mesh, Scene, Vector3, Ray, Quaternion, FreeCamera, TransformNode, StandardMaterial, Scalar, Tools } from "@babylonjs/core";
+import { Engine, Mesh, Scene, Vector3, Ray, Quaternion, FreeCamera, TransformNode, StandardMaterial, Scalar, ParticleSystem, Texture, Color4, MeshBuilder, Tools } from "@babylonjs/core";
 import { AdvancedDynamicTexture, StackPanel, TextBlock } from "@babylonjs/gui";
 import { Menu } from "./menu";
 
@@ -10,10 +10,14 @@ export class Kart extends TransformNode {
     private _locallyOwned: boolean;
     private _input: IKartInput;
     private _hits: number = 0;
+    private _particlesLeft: ParticleSystem;
+    private _particlesRight: ParticleSystem;
+    private _particlesConeLeft: Mesh;
+    private _particlesConeRight: Mesh;
 
     private static readonly UP_GROUNDED_FILTER_STRENGTH: number = 7.0;
     private static readonly UP_FALLING_FILTER_STRENGTH: number = 1.0;
-    private static readonly MAX_FALL_TIME_SECONDS: number = 3.0;
+    private static readonly MAX_FALL_TIME_SECONDS: number = 2.0;
     private static readonly TURN_FILTER_STRENGTH: number = 0.1;
     private static readonly MAX_TURN_SCALAR: number = Math.PI * 2 / 3;
     private static readonly FORWARD_VELOCITY_SCALAR: number = 3.0;
@@ -33,7 +37,8 @@ export class Kart extends TransformNode {
     private _lastSafeFilteredUp: Vector3 = Vector3.Zero();
     private _turnFactor: number = 0.0;
     private _kartName : string = "";
-    private _lastHazard: number = -1;
+    private _lastHazardId: number = -1;
+    private _lastHazardType: string = "";
     private _bombHitTime: number = 0;
     private _velocityFactor: number = 1;
     private _initialPosition: Vector3;
@@ -61,6 +66,8 @@ export class Kart extends TransformNode {
         if (this._locallyOwned) {
             this._input = KartEngine.instance.inputSource;
         }
+
+        this.setUpParticleSystems(scene);
     }
 
     public activateKartCamera(): FreeCamera {
@@ -200,19 +207,21 @@ export class Kart extends TransformNode {
 
     private updateFromHazards(): void {
         let collisionId = this.checkHazardCollision("bombs");
-        if (collisionId != -1 && collisionId != this._lastHazard)
+        if (collisionId != -1 && (collisionId != this._lastHazardId || this._lastHazardType != "bomb"))
         {
             this._velocity.set(0.0, 1.2, 0.0);
-            this._lastHazard = collisionId;
+            this._lastHazardId = collisionId;
+            this._lastHazardType = "bomb";
             this._bombHitTime = (new Date).getTime();
             this._velocityFactor = 0.5;
             this._state = "exploded";
         }
 
         collisionId = this.checkHazardCollision("boosts"); 
-        if (collisionId != -1 && collisionId != this._lastHazard)
+        if (collisionId != -1 && (collisionId != this._lastHazardId || this._lastHazardType != "boost"))
         {
-            this._lastHazard = collisionId;
+            this._lastHazardId = collisionId;
+            this._lastHazardType = "boost";
             this._boostHitTime = (new Date).getTime();
             this._velocityFactor = 1.6;
             this._state = "fast";
@@ -244,13 +253,15 @@ export class Kart extends TransformNode {
                 this._velocity.scaleInPlace(speed);
             }
             
-            this._lastHazard = collisionId;
+            this._lastHazardId = collisionId;
+            this._lastHazardType = "bumper";
         }
         collisionId = this.checkHazardCollision("poison"); 
-        if (collisionId != -1 && collisionId != this._lastHazard)
+        if (collisionId != -1 && (collisionId != this._lastHazardId || this._lastHazardType != "poison"))
         {
             this._velocity.set(0.0, 0.0, 0.0);
-            this._lastHazard = collisionId;
+            this._lastHazardId = collisionId;
+            this._lastHazardType = "poison";
             this._slowHitTime = (new Date).getTime();
             this._velocityFactor = 0.1;
             this._state = "slow";
@@ -344,6 +355,8 @@ export class Kart extends TransformNode {
         this._relocity *= (1.0 - (Kart.TURN_DECAY_SCALAR * this._deltaTime));
     
         this.position.addInPlace(this._velocity.scale(this._deltaTime*60));
+        
+        this.updateParticles(this._velocity.length());
     }
 
     private setup3rdPersonKartCamera() {
@@ -352,6 +365,110 @@ export class Kart extends TransformNode {
         this._camera.parent = this;
         this.getScene().activeCamera = this._camera;
     }
+
+    private setUpParticleSystems(scene: Scene)
+    {
+        this._particlesLeft = this.setUpSpeedParticles(scene, this._particlesConeLeft, new Vector3(-.8, 0.5, 2), new Vector3(-.8, 0.0, -.3))
+        this._particlesRight = this.setUpSpeedParticles(scene, this._particlesConeRight, new Vector3(.8, 0.5, 2), new Vector3(.8, 0.0, -.3))
+        debugger;// this.setUpSpeedParticles(scene, this._particlesConeRight, this._particlesRight, new Vector3(.8, 0.1, 2), new Vector3(.8, 0.0, 1.5))
+    }
+
+    private setUpSpeedParticles(scene: Scene, cone: Mesh, minEmitBox: Vector3, maxEmitBox: Vector3) : ParticleSystem
+    {
+        cone = MeshBuilder.CreateCylinder("cone", {diameterBottom:0, diameterTop: 1, height: 1}, scene);
+        cone.position= this.position.subtract(new Vector3(0,0,1.5));
+        // cone.rotate(new Vector3(1,0,0), -Math.PI/2.0);
+        cone.parent = this;
+        cone.material = new StandardMaterial("mat", scene);
+        cone.visibility = 0;
+
+        const particlesSystem = new ParticleSystem("particles", 2000, scene);
+        particlesSystem.particleTexture = new Texture("/public/textures/flare.png", scene);
+        particlesSystem.emitter = cone; 
+        particlesSystem.minEmitBox = minEmitBox;
+        particlesSystem.maxEmitBox = maxEmitBox;
+
+        particlesSystem.colorDead = new Color4(0, 0.0, 0.0, 0.0);
+        particlesSystem.minSize = 0.05;
+        particlesSystem.maxSize = 0.1;
+        particlesSystem.minLifeTime = 0.02;
+        particlesSystem.maxLifeTime = 0.05;
+        particlesSystem.emitRate = 500;
+        particlesSystem.blendMode = ParticleSystem.BLENDMODE_ONEONE;
+        particlesSystem.direction1 = new Vector3(0, 0, -1); 
+        particlesSystem.direction2= new Vector3(0, 1, -1); 
+        particlesSystem.minAngularSpeed = 0;
+        particlesSystem.maxAngularSpeed = Math.PI/8;
+        particlesSystem.minEmitPower = 0.5;
+        particlesSystem.maxEmitPower = 1;
+        particlesSystem.updateSpeed = 0.08;        
+
+        particlesSystem.start();
+
+        return particlesSystem;
+    }
+
+    private updateSpeedParticle(speed: number)
+    {
+        this._particlesLeft.emitRate = speed*100;
+        this._particlesRight.emitRate = speed*100;
+
+
+        if (speed> 0 && speed < .7)
+        {
+            const gray1 = new Color4(0.3, 0.3, 0.3, 1.0);
+            const gray2 = new Color4(0.7, 0.7, 0.7, 1.0);
+            this._particlesLeft.color1 = gray1;
+            this._particlesLeft.color2 = gray2;
+            this._particlesLeft.maxLifeTime = 2;
+            this._particlesRight.color1 = gray1;
+            this._particlesRight.color2 = gray2;
+        }
+
+        else if (speed>= .7 && speed < 1.3)
+        {
+            const yellow1 = new Color4(1, 1, 0.0, 1.0);
+            const yellow2 = new Color4(1, 0.8, 0.0, 1.0);
+            this._particlesLeft.color1 = yellow1;
+            this._particlesLeft.color2 = yellow2;
+            this._particlesLeft.maxLifeTime = .5;
+            this._particlesRight.color1 = yellow1;
+            this._particlesRight.color2 = yellow2;
+            this._particlesRight.maxLifeTime = .5;
+        }
+
+        else if (speed>= 1.3 && speed < 1.5)
+        {
+            const red1 = new Color4(1, 0, 0.0, 1.0);
+            const red2 = new Color4(.7, 0.0, 0.0, 1.0);
+            this._particlesLeft.color1 = red1;
+            this._particlesLeft.color2 = red2;
+            this._particlesLeft.maxLifeTime = .4;
+            this._particlesRight.color1 = red1;
+            this._particlesRight.color2 = red2;
+            this._particlesRight.maxLifeTime = .4;
+        }
+
+        else
+        {
+            const blue1 = new Color4(0, 1, 0.0, 1.0);
+            const blue2 = new Color4(0, 0.8, 0.0, 1.0);
+            this._particlesLeft.color1 = blue1;
+            this._particlesLeft.color2 = blue2;
+            this._particlesLeft.maxLifeTime = .4;
+            this._particlesRight.color1 = blue1;
+            this._particlesRight.color2 = blue2;
+            this._particlesRight.maxLifeTime = .4;
+        }
+    }
+
+    private updateParticles(speed: number)
+    {
+        this.updateSpeedParticle(speed);
+
+        //TODO: Update particles for car state (poisoned, exploded, etc.).
+    }
+
 
     public reset(){
         this._hits = 0;
