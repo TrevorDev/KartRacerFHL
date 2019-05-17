@@ -60,7 +60,6 @@ export class Kart extends TransformNode {
     private _velocityFactor: number;
     private _currentVelocityFactor: number = 0;
     private _initialPosition: Vector3;
-    private _archPosition: Mesh;
     private _groundSpeedFactor: number = 1;
 
     private _initialLookAt: Vector3;
@@ -104,8 +103,6 @@ export class Kart extends TransformNode {
         this._scene.registerBeforeRender(() => {
             this.beforeRenderUpdate();
         });
-
-        this._archPosition = this.createCheckpointArrow();
 
         return this._camera;
     }
@@ -154,19 +151,6 @@ export class Kart extends TransformNode {
 
     public getKartName(): string {
         return this._kartName;
-    }
-
-    private createCheckpointArrow(): Mesh {
-        var arch = Mesh.CreateTorus("arch", 35, 2, 16, this._scene);
-        arch.rotate(new Vector3(1, 0, 0), 0.5 * Math.PI);
-
-        var viewPoint = Mesh.CreateBox("box", 0.1, this._scene);
-        viewPoint.isPickable = false;
-        viewPoint.isVisible = false;
-
-        arch.parent = viewPoint;
-
-        return viewPoint;
     }
 
     private updateFromTrackPhysics(): void {
@@ -419,18 +403,24 @@ export class Kart extends TransformNode {
     }
 
     private updateFromTrackProgress(): void {
-        let i = 0
-        let hit = false;
+        let i: number;
+        let closestPoint = this._checkpoints[0];
         let kartPos = this.position;
+        let closestPos = 0;
+        let previousPos = this._hits;
 
-        let diff = kartPos.subtract(this._checkpoints[this._hits])
+        for (i = 1; i < this._checkpoints.length; i++) {
+            let closeDiff = kartPos.subtract(closestPoint);
+            let currentDiff = kartPos.subtract(this._checkpoints[i]);
 
-        if (diff.length() < 30) {
-            this._hits++;
-            if (this._hits < this._checkpoints.length) {
-                this._archPosition.position = this._checkpoints[this._hits];
-                this._archPosition.lookAt(this._checkpoints[((this._hits + 1) % this._checkpoints.length)]);
+            if (closeDiff.length() > currentDiff.length()) {
+                closestPoint = this._checkpoints[i];
+                closestPos = i;
             }
+        }
+
+        if (Math.abs(previousPos - closestPos) < 3) {
+            this._hits = closestPos;
         }
     }
 
@@ -626,8 +616,6 @@ export class Kart extends TransformNode {
         this.computeWorldMatrix();
         this.TrackTime = "";
         this.PlayerMenu.SetWinText("");
-        this._archPosition.position = this._checkpoints[0];
-        this._archPosition.lookAt(this._checkpoints[1]);
         this.PlayerMenu.StartTimer();
         this.resetAllHazards();
     }
