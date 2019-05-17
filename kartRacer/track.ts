@@ -1,4 +1,4 @@
-import { Vector3, Curve3, RibbonBuilder, PBRMaterial, Texture, Tools, Scene, TransformNode, Mesh, Scalar, Vector2, Nullable } from "@babylonjs/core";
+import { Vector3, Curve3, RibbonBuilder, PBRMaterial, Texture, Tools, Scene, TransformNode, Mesh, InstancedMesh, Scalar, Engine, Vector2, Nullable } from "@babylonjs/core";
 import { KartEngine } from "./engine";
 
 interface ITrackPoint {
@@ -276,6 +276,7 @@ export class Track {
         const poisonHazards = new TransformNode("poisons", scene);
         poisonHazards.parent = hazards;
 
+        const instances: Array<InstancedMesh> = [];
         function createHazard(name: string, mesh: Mesh, point: Vector3, rotationY: number, group: TransformNode): void {
             const hazardScale = 4;
             const instance = mesh.createInstance(name);
@@ -283,6 +284,7 @@ export class Track {
             instance.addRotation(0, rotationY, 0);
             instance.position.copyFrom(point);
             instance.parent = group;
+            instances.push(instance);
         }
 
         const hazardPoints = this.getHazardPoints(1.5, 0.1, trackPoints);
@@ -302,6 +304,14 @@ export class Track {
                 createHazard("poison", KartEngine.instance.assets.poison, hazardPoint, rotationY, poisonHazards);
             }
         }
+
+        scene.onBeforeRenderObservable.add(() => {
+            let scalar = Date.now() * 0.002;
+            for (const instance of instances) {
+                const scale = 0.5 * Math.sin(scalar++);
+                instance.scaling.set(4.0 + scale, 4.0 - scale, 4.0 + scale);
+            }
+        });
     }
 
     private getHazardPoints(height: number, density: number, trackPoints: Array<ITrackPoint>): Array<Vector3> {

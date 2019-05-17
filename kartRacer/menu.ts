@@ -61,8 +61,9 @@ export class Menu {
 
             this._time = time;
             this._timeText.text = "TIME: " + this.FormatTime(time);
-            this._scoreText.text = prog + "% Complete";
         }
+        
+        this._scoreText.text = prog + "% Complete";
     }
 
     public EnableHud() : void

@@ -21,12 +21,12 @@ var main = async () => {
         varianceSeed: 1,
         lateralVariance: 50,
         heightVariance: 20,
-        width: 25,
+        width: 35,
         height: 5
     });
     var skybox = new Skybox(kartEngine.scene);
 
-    const offset = new Vector3(0, 1, 0);
+    const offset = new Vector3(0, 4, 0);
     var camera = new FreeCamera("camera", new Vector3(0, 10, 3), kartEngine.scene);
     camera.rotationQuaternion = new Quaternion();
     kartEngine.scene.activeCamera = camera;
@@ -43,19 +43,15 @@ var main = async () => {
     var multiplayer = new Multiplayer(kartEngine.scene);
 
     var gameStarted = false;
-    billboard.onGameStartObservable.addOnce(() => {
-        let checkpoints: Set<Vector3> = new Set<Vector3>();
+  
+    billboard.onGameStartObservable.addOnce(()=>{
+        let checkpoints : Vector3[] = track.controlPoints.slice(2,track.controlPoints.length); 
+        checkpoints[track.controlPoints.length - 2] = track.controlPoints[1];
 
-        for (const value of track.controlPoints) {
-            checkpoints.add(value);;
-        }
-
-        kartEngine.kart.initializeTrackProgress(checkpoints, startingPosition);
+        kartEngine.kart.initializeTrackProgress(checkpoints, startingPosition, startingRotation);
 
         let camera = kartEngine.kart.activateKartCamera();
-        kartEngine.kart.position = startingPosition;
-        kartEngine.kart.lookAt(startingRotation);
-        kartEngine.kart.computeWorldMatrix();
+        kartEngine.kart.reset();
 
         // Initialize Multiplayer
         multiplayer.connectToRoom("testRoom", kartEngine.kart);
@@ -76,6 +72,10 @@ var main = async () => {
             menu.UpdateHUD(kartEngine.kart.getTrackComplete());
             if (kartEngine.kart.getTrackComplete() == 100 && kartEngine.kart.TrackTime.length == 0) {
                 kartEngine.kart.TrackTime = menu.StopTimer();
+            }
+
+            if(kartEngine.kart.getTrackComplete() == 100){
+                multiplayer.raceComplete(kartEngine.kart.getKartName());
             }
         }
     })

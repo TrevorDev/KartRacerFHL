@@ -8,7 +8,7 @@ export class Kart extends TransformNode {
     private _camera: FreeCamera;
     private _locallyOwned: boolean;
     private _input: IKartInput;
-    private _hits: number = -1;
+    private _hits: number = 0;
 
     private static readonly UP_GROUNDED_FILTER_STRENGTH: number = 7.0;
     private static readonly UP_FALLING_FILTER_STRENGTH: number = 1.0;
@@ -36,7 +36,9 @@ export class Kart extends TransformNode {
     private _bombHitTime: number = 0;
     private _velocityFactor: number = 1;
     private _initialPosition: Vector3;
-    private _checkpoints: Set<Vector3> = new Set<Vector3>();
+
+    private _initialLookAt: Vector3;
+    private _checkpoints: Vector3[];
     private _totalCheckpoints: number = 0;
     private _boostHitTime: number = 0;
     private _slowHitTime: number = 0;
@@ -93,11 +95,16 @@ export class Kart extends TransformNode {
         this._kartName = name;
     }
 
-    public initializeTrackProgress(checkpoints: Set<Vector3>, startingPosition: Vector3): void
+    public initializeTrackProgress(checkpoints: Vector3[], startingPosition: Vector3, startingLookAt: Vector3): void
     {
         this._initialPosition = startingPosition;
+        this._initialLookAt = startingLookAt;
         this._checkpoints = checkpoints;
-        this._totalCheckpoints = checkpoints.size;
+        // checkpoints.forEach((c)=>{
+        //     var s = Mesh.CreateSphere("", 16, 40)
+        //     s.position.copyFrom(c)
+        // })
+        this._totalCheckpoints = checkpoints.length;
     }
 
     public getTrackComplete(): number
@@ -294,29 +301,19 @@ export class Kart extends TransformNode {
         let hit = false;
         let kartPos = this.position;
 
-        for (const value of this._checkpoints)
+        let diff = kartPos.subtract(this._checkpoints[this._hits])
+
+        if(diff.length() < 20)
         {
-            let x = Math.abs(kartPos.x - value.x);
-            let y = Math.abs(kartPos.y - value.y);
-            let z = Math.abs(kartPos.z - value.z);
-            let rad = 8;
-
-            if(!hit && x < rad && y < rad && z < rad)
-            {
-                this._checkpoints.delete(value);
-
-                if (this._hits == 2)
-                {
-                    this._checkpoints.add(this._initialPosition);
-                }
-
-                this._hits++;
-            }
+            this._hits++;
         }
     }
 
     private beforeRenderUpdate(): void {
         this._deltaTime = Engine.Instances[0].getDeltaTime() / 1000.0;
+        if(this._deltaTime > 0.3){
+            return;
+        }
         
         if ((this._state == "exploded" && (new Date).getTime() - this._bombHitTime > Kart.BOMB_DURATION)
         || (this._state == "fast" && (new Date).getTime() - this._boostHitTime > Kart.BOOST_DURATION)
@@ -326,7 +323,11 @@ export class Kart extends TransformNode {
             this._state = "ok";
         }
 
-        this.updateFromTrackProgress();      
+        if(this._hits < this._checkpoints.length)
+        {
+            this.updateFromTrackProgress();
+        }
+     
         this.updateFromPhysics();
         this.updateFromHazards();
 
@@ -338,7 +339,7 @@ export class Kart extends TransformNode {
         this._velocity.scaleInPlace(1.0 - (Kart.VELOCITY_DECAY_SCALAR * this._deltaTime));
         this._relocity *= (1.0 - (Kart.TURN_DECAY_SCALAR * this._deltaTime));
     
-        this.position.addInPlace(this._velocity);
+        this.position.addInPlace(this._velocity.scale(this._deltaTime*60));
     }
 
     private setup3rdPersonKartCamera() {
@@ -347,4 +348,15 @@ export class Kart extends TransformNode {
         this._camera.parent = this;
         this.getScene().activeCamera = this._camera;
     }
+
+    public reset(){
+        this._hits = 0;
+        this._state = "ok";
+        this._velocity.set(0,0,0);
+        this._velocityFactor = 1;
+        this.position = this._initialPosition;
+        this.lookAt(this._initialLookAt);
+        this.computeWorldMatrix();
+    }
 }
+

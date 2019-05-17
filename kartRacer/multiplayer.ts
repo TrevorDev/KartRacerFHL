@@ -1,5 +1,6 @@
 import { Kart } from './kart';
 import { Vector3, Nullable, Quaternion, Scene, Scalar } from '@babylonjs/core';
+import { KartEngine } from './engine';
 
 // Socket io
 declare var io: any;
@@ -10,13 +11,17 @@ export class Multiplayer {
     public trackedServerObjects: { [key: string]: { lastPose: { position: Vector3, rotation: Quaternion },targetPose: { position: Vector3, rotation: Quaternion }, object: Nullable<{ position: Vector3, rotationQuaternion: Quaternion }> } } = {};
     public lastTime = new Date();
     public pingMS = 1;
+    private _raceId = 0;
+    private _socket:SocketIO.Socket;
     constructor(public scene: Scene) {
     }
 
     connectToRoom(roomName: string, trackedObject: Nullable<{ position: Vector3, rotationQuaternion: Quaternion }>) {
         var socket: SocketIO.Socket = io();
+        this._socket = socket;
         socket.emit("joinRoom", { roomName: "test" });
         socket.on("joinRoomComplete", (e) => {
+            this._raceId = e.raceId;
             this.localId = e.id;
             this.trackedObject = trackedObject;
             this.pingMS = e.pingMS
@@ -52,6 +57,12 @@ export class Multiplayer {
                     delete this.trackedServerObjects[id]
                 }
             })
+
+            socket.on("raceComplete", (info) => {
+                console.log(info.winnerName+" won the race")
+                this._raceId = info.raceId;
+                KartEngine.instance.kart.reset()
+            })
         })
     }
 
@@ -76,6 +87,11 @@ export class Multiplayer {
 
             //Quaternion.SlerpToRef(this.trackedServerObjects[key].object.rotationQuaternion, this.trackedServerObjects[key].targetPose.rotation, 0.05, this.trackedServerObjects[key].object.rotationQuaternion);
         }
+    }
+
+    public raceComplete(name:string){
+        console.log("hit")
+        this._socket.emit("raceComplete", {name: name, raceId: this._raceId})
     }
 }
 
