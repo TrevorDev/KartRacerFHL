@@ -273,13 +273,13 @@ export class Track {
         boostHazards.parent = hazards;
         const bumperHazards = new TransformNode("bumpers", scene);
         bumperHazards.parent = hazards;
-        const poisonHazards = new TransformNode("poisons", scene);
+        const poisonHazards = new TransformNode("poison", scene);
         poisonHazards.parent = hazards;
 
         const instances: Array<InstancedMesh> = [];
-        function createHazard(name: string, mesh: Mesh, point: Vector3, rotationY: number, group: TransformNode): void {
-            const hazardScale = 4;
+        function createHazard(name: string, mesh: Mesh, point: Vector3, rotationY: number, group: TransformNode, hazardScale: number): void {
             const instance = mesh.createInstance(name);
+            instance.isPickable = false;
             instance.scaling.scaleInPlace(hazardScale);
             instance.addRotation(0, rotationY, 0);
             instance.position.copyFrom(point);
@@ -292,24 +292,29 @@ export class Track {
             const hazardType = this.random();
             const rotationY = this.random();
             if (hazardType < 0.25) {
-                createHazard("bomb", KartEngine.instance.assets.bomb, hazardPoint, rotationY, bombHazards);
+                createHazard("bomb", KartEngine.instance.assets.bomb, hazardPoint, rotationY, bombHazards, 1);
             }
             else if (hazardType < 0.50) {
-                createHazard("boost", KartEngine.instance.assets.boost, hazardPoint, rotationY, boostHazards);
+                createHazard("boost", KartEngine.instance.assets.boost, hazardPoint, rotationY, boostHazards, 8);
             }
             else if (hazardType < 0.75) {
-                createHazard("bumper", KartEngine.instance.assets.bumper, hazardPoint, rotationY, bumperHazards);
+                createHazard("bumper", KartEngine.instance.assets.bumper, hazardPoint, rotationY, bumperHazards, 4);
             }
             else {
-                createHazard("poison", KartEngine.instance.assets.poison, hazardPoint, rotationY, poisonHazards);
+                createHazard("poison", KartEngine.instance.assets.poison, hazardPoint, rotationY, poisonHazards, 4);
             }
         }
 
         scene.onBeforeRenderObservable.add(() => {
             let scalar = Date.now() * 0.002;
             for (const instance of instances) {
-                const scale = 0.5 * Math.sin(scalar++);
-                instance.scaling.set(4.0 + scale, 4.0 - scale, 4.0 + scale);
+                let scaleOriginal = 4.0;
+                if (instance.id == "bomb")
+                {
+                    scaleOriginal = .2;
+                }
+                const growth = scaleOriginal/8 * Math.sin(scalar++);
+                instance.scaling.set(scaleOriginal + growth, scaleOriginal - growth, scaleOriginal+ growth);
             }
         });
     }
