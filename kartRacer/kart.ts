@@ -22,9 +22,11 @@ export class Kart extends TransformNode {
     private static readonly SLOW_DURATION: number = 3000;
     private static readonly BOMB_DURATION: number = 2000;
     private static readonly BOOST_DURATION: number = 1000;
-    private static readonly BOOST_VELOCITY_FACTOR: number = 8;
-    private static readonly ACCELERATION: number = 0.28;
-    private static readonly DECCELERATION: number = 1.25;
+    private static readonly BOOST_VELOCITY_FACTOR: number = 8.1;
+    private static readonly ACCELERATION: number = 0.295;
+    private static readonly BABY_ACCELERATION: number = 0.24;
+    private static readonly BABY_THRESHOLD = 0.8;
+    private static readonly DECCELERATION: number = 1.35;
     private static readonly MAX_SPEED: number = 4.2;
 
     private _velocity: Vector3 = Vector3.Zero();
@@ -379,12 +381,25 @@ export class Kart extends TransformNode {
             this._currentVelocityFactor = this._velocityFactor;
         }
         else {
-            if (this.getForward() > 0) {
-                this._currentVelocityFactor = Scalar.Lerp(this._currentVelocityFactor, this._velocityFactor, this._deltaTime * Kart.ACCELERATION);
+            let goalVelocityFactor:number = this._velocityFactor;
+            let acceleration = Kart.ACCELERATION;
+            if(this.getForward() === 0)
+            {
+                goalVelocityFactor = 0;
+                acceleration = Kart.DECCELERATION;
             }
-            else {
-                this._currentVelocityFactor = Scalar.Lerp(this._currentVelocityFactor, 0, this._deltaTime * Kart.DECCELERATION);
+            else
+            {
+                if(this._currentVelocityFactor < Kart.BABY_THRESHOLD)
+                {
+                    acceleration = Kart.BABY_ACCELERATION;
+                }
+                if(this._currentVelocityFactor > goalVelocityFactor)
+                {
+                    acceleration = Kart.DECCELERATION;
+                }
             }
+            this._currentVelocityFactor = Scalar.Lerp(this._currentVelocityFactor, goalVelocityFactor, this._deltaTime * acceleration);
         }
     }
 }
