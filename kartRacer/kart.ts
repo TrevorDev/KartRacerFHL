@@ -1,6 +1,6 @@
 import { IKartInput } from "./input";
 import { KartEngine } from "./engine";
-import { Engine, Mesh, Scene, Vector3, Ray, Quaternion, FreeCamera, TransformNode, StandardMaterial, Scalar, AbstractMesh, AnimationGroup, ParticleSystem, MeshBuilder, Texture, Color4, Tools } from "@babylonjs/core";
+import { Engine, Mesh, Scene, Vector3, Ray, Quaternion, FreeCamera, TransformNode, StandardMaterial, Scalar, AbstractMesh, AnimationGroup, ParticleSystem, MeshBuilder, Texture, Color4, Tools, Tags } from "@babylonjs/core";
 import { AdvancedDynamicTexture, StackPanel, TextBlock } from "@babylonjs/gui";
 import { Menu } from "./menu";
 
@@ -137,7 +137,9 @@ export class Kart extends TransformNode {
 
     private updateFromPhysics(): void {
         var ray = new Ray(this.position, this.up.scale(-1.0), 0.7);
-        var hit = KartEngine.instance.scene.pickWithRay(ray);
+        var hit = KartEngine.instance.scene.pickWithRay(ray, (m)=>{
+            return Tags.GetTags(m) == "drivable";
+        });
         if (hit.hit) {
             // MAGIC: There is a bug in the picking code where the barycentric coordinates
             // returned for bu and bv are actually bv and bw.  This causes the normals to be

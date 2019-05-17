@@ -1,4 +1,4 @@
-import { Vector3, Curve3, RibbonBuilder, PBRMaterial, Texture, Tools, Scene, TransformNode, Mesh, InstancedMesh, Scalar, Engine, Vector2, Nullable } from "@babylonjs/core";
+import { Vector3, Curve3, RibbonBuilder, PBRMaterial, Texture, Tools, Scene, TransformNode, Mesh, InstancedMesh, Scalar, Engine, Vector2, Nullable, Tags } from "@babylonjs/core";
 import { KartEngine } from "./engine";
 
 interface ITrackPoint {
@@ -137,6 +137,8 @@ export class Track {
         road.material = material;
         road.parent = track;
 
+        Tags.AddTagsTo(road, "drivable");
+
         return road;
     }
 
@@ -159,9 +161,11 @@ export class Track {
 
         right.material = material;
         right.parent = aprons;
+        Tags.AddTagsTo(right, "drivable");
 
         left.material = material;
         left.parent = aprons;
+        Tags.AddTagsTo(left, "drivable");
     }
 
     private createFlats(scene: Scene, trackPoints: Array<ITrackPoint>, track: TransformNode, vScale: number): void {
@@ -180,9 +184,11 @@ export class Track {
 
         right.material = material;
         right.parent = flats;
+        Tags.AddTagsTo(right, "drivable");
 
         left.material = material;
         left.parent = flats;
+        Tags.AddTagsTo(left, "drivable");
     }
 
     private createWalls(scene: Scene, trackPoints: Array<ITrackPoint>, track: TransformNode, vScale: number): void {
@@ -201,9 +207,11 @@ export class Track {
 
         right.material = material;
         right.parent = walls;
+        Tags.AddTagsTo(right, "drivable");
 
         left.material = material;
         left.parent = walls;
+        Tags.AddTagsTo(left, "drivable");
     }
 
     private createGoal(scene: Scene, trackPoints: Array<ITrackPoint>, track: TransformNode): void {
