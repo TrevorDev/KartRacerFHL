@@ -468,8 +468,6 @@ export class Kart extends TransformNode {
         this.position = this._initialPosition;
         this.lookAt(this._initialLookAt);
         this.computeWorldMatrix();
-        Tools.DelayAsync(3000).then(() => {
-            this.PlayerMenu.SetWinText("");
-        });
+        this.PlayerMenu.SetWinText("");
     }
 }
