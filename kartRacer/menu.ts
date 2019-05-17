@@ -92,6 +92,7 @@ export class Menu {
     public StartTimer() : void
     {
         this._startTime = new Date().getTime();
+        this._stopTimer = false;
     }
     public StopTimer() : string
     {

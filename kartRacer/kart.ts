@@ -543,6 +543,8 @@ export class Kart extends TransformNode {
         this.position = this._initialPosition;
         this.lookAt(this._initialLookAt);
         this.computeWorldMatrix();
+        this.TrackTime = "";
         this.PlayerMenu.SetWinText("");
+        this.PlayerMenu.StartTimer();
     }
 }
