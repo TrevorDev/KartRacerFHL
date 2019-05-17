@@ -1,8 +1,11 @@
 import { Vector3, Curve3, RibbonBuilder, PBRMaterial, Texture, Tools, Scene, TransformNode, Mesh, InstancedMesh, Scalar, Engine, Vector2, Nullable, Tags } from "@babylonjs/core";
 import { KartEngine } from "./engine";
 
-interface ITrackPoint {
+export interface ITrackPoint {
     point: Vector3;
+    forward: Vector3;
+    up: Vector3;
+    right: Vector3;
 
     leftEdge: Vector3;
     leftApron: Vector3;
@@ -21,24 +24,23 @@ export class Track {
     public readonly startPoint: Vector3;
     public readonly startTarget: Vector3;
     public readonly controlPoints: Vector3[];
+    public readonly trackPoints: ITrackPoint[];
 
     private _varianceSeed: number;
 
     constructor(scene: Scene, options: { radius: number, numPoints: number, varianceSeed: number, lateralVariance: number, heightVariance: number, width: number, height: number }) {
         this._varianceSeed = options.varianceSeed;
 
-        const controlPoints = this.getTrackControlPoints(
+        this.controlPoints = this.getTrackControlPoints(
             options.numPoints,
             options.radius,
             options.lateralVariance,
             options.heightVariance
         );
 
-        this.controlPoints = controlPoints;
-
         const curvatureFactor = Math.ceil((options.radius + options.lateralVariance + options.heightVariance) * 0.05);
 
-        const curve = Curve3.CreateCatmullRomSpline(controlPoints, curvatureFactor, true);
+        const curve = Curve3.CreateCatmullRomSpline(this.controlPoints, curvatureFactor, true);
         const points = curve.getPoints();
 
         function getPoint(index: number): Vector3 {
@@ -63,7 +65,7 @@ export class Track {
         const wallHeight = options.height;
         const wallWidth = 1.0;
 
-        const trackPoints = new Array<ITrackPoint>(points.length);
+        this.trackPoints = new Array<ITrackPoint>(points.length);
         for (let index = 0; index < points.length; ++index) {
             const point = points[index];
             const forward = getForward(index);
@@ -91,8 +93,11 @@ export class Track {
             const rightWallInside = rightFlat.add(wallHeightVector);
             const rightWallOutside = rightWallInside.add(wallWidthVector);
 
-            trackPoints[index] = {
+            this.trackPoints[index] = {
                 point: point,
+                forward: forward,
+                up: up,
+                right: right,
 
                 leftEdge: leftEdge,
                 leftApron: leftApron,
@@ -111,13 +116,13 @@ export class Track {
         const vScale = Math.round(curve.length() / (options.width * 2));
 
         const track = new TransformNode("track", scene);
-        this.createRoad(scene, trackPoints, track, vScale);
-        this.createAprons(scene, trackPoints, track, vScale);
-        this.createFlats(scene, trackPoints, track, vScale);
-        this.createWalls(scene, trackPoints, track, vScale);
-        this.createGoal(scene, trackPoints, track);
-        this.createTrees(scene, trackPoints, track);
-        this.createHazards(scene, trackPoints, track);
+        this.createRoad(scene, this.trackPoints, track, vScale);
+        this.createAprons(scene, this.trackPoints, track, vScale);
+        this.createFlats(scene, this.trackPoints, track, vScale);
+        this.createWalls(scene, this.trackPoints, track, vScale);
+        this.createGoal(scene, this.trackPoints, track);
+        this.createTrees(scene, this.trackPoints, track);
+        this.createHazards(scene, this.trackPoints, track);
 
         this.startPoint = getPoint(0);
         this.startTarget = getPoint(1);
