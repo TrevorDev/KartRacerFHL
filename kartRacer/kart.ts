@@ -55,6 +55,7 @@ export class Kart extends TransformNode {
     private _velocityFactor: number;
     private _currentVelocityFactor: number = 0;
     private _initialPosition: Vector3;
+    private _archPosition: Mesh;
 
     private _initialLookAt: Vector3;
     private _checkpoints: Vector3[];
@@ -97,6 +98,8 @@ export class Kart extends TransformNode {
         this._scene.registerBeforeRender(() => {
             this.beforeRenderUpdate();
         });
+
+        this._archPosition = this.createCheckpointArrow();
 
         return this._camera;
     }
@@ -145,6 +148,19 @@ export class Kart extends TransformNode {
 
     public getKartName(): string {
         return this._kartName;
+    }
+
+    private createCheckpointArrow(): Mesh {
+        var arch = Mesh.CreateTorus("arch",35,2,16,this._scene);
+        arch.rotate(new Vector3(1,0,0),0.5 * Math.PI);
+
+        var viewPoint = Mesh.CreateBox("box",0.1,this._scene);
+        viewPoint.isPickable = false;
+        viewPoint.isVisible = false;
+
+        arch.parent = viewPoint;
+
+        return viewPoint;
     }
 
     private updateFromTrackPhysics(): void {
@@ -408,6 +424,11 @@ export class Kart extends TransformNode {
 
         if (diff.length() < 30) {
             this._hits++;
+            if(this._hits < this._checkpoints.length)
+            {
+                this._archPosition.position = this._checkpoints[this._hits];
+                this._archPosition.lookAt(this._checkpoints[((this._hits+1) % this._checkpoints.length)]);
+            }
         }
     }
 
@@ -605,7 +626,11 @@ export class Kart extends TransformNode {
         this.position = this._initialPosition;
         this.lookAt(this._initialLookAt);
         this.computeWorldMatrix();
+        this.TrackTime = "";
         this.PlayerMenu.SetWinText("");
+        this._archPosition.position = this._checkpoints[0];
+        this._archPosition.lookAt(this._checkpoints[1]);
+        this.PlayerMenu.StartTimer();
         this.resetAllHazards();
     }
 
