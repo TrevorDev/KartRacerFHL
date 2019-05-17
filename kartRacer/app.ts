@@ -1,5 +1,5 @@
 import { KartEngine } from "./engine";
-import { Track } from './track';
+import { Track, ITrackPoint } from './track';
 import { Vector3, Quaternion, FreeCamera, Mesh, CubeMapToSphericalPolynomialTools, StandardMaterial } from "@babylonjs/core";
 import { Multiplayer } from "./multiplayer";
 import { Billboard } from "./billboard";
@@ -43,10 +43,15 @@ var main = async () => {
     var gameStarted = false;
   
     billboard.onGameStartObservable.addOnce(()=>{
-        let checkpoints : Vector3[] = track.controlPoints.slice(2,track.controlPoints.length); 
-        checkpoints[track.controlPoints.length - 2] = track.controlPoints[1];
+        let checkpoints : ITrackPoint[] = track.trackPoints.slice(1,track.trackPoints.length-1); 
+        checkpoints[0] = track.trackPoints[track.trackPoints.length - 1];
+        let cv : Vector3[] = []
 
-        kartEngine.kart.initializeTrackProgress(checkpoints, startingPosition, startingRotation);
+        checkpoints.forEach(value => {
+            cv.push(value.point);
+        });
+
+        kartEngine.kart.initializeTrackProgress(cv, startingPosition, startingRotation);
 
         let camera = kartEngine.kart.activateKartCamera();
         menu = new Menu(camera, kartEngine.scene);
