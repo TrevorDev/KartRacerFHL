@@ -88,7 +88,7 @@ export class Kart extends TransformNode {
     }
 
     public assignKartName(name: string): void {
-        var namePlane = Mesh.CreatePlane("namePlane", 2, this._scene);
+        var namePlane = Mesh.CreatePlane("namePlane", 3.5, this._scene);
         namePlane.material = new StandardMaterial("", this._scene)
 
         var nameMesh = AdvancedDynamicTexture.CreateForMesh(namePlane);
@@ -99,7 +99,7 @@ export class Kart extends TransformNode {
         var nameText = new TextBlock();
         nameText.height = "100%";
         nameText.textVerticalAlignment = TextBlock.VERTICAL_ALIGNMENT_TOP;
-        nameText.fontSize = 160;
+        nameText.fontSize = 96;
         nameText.color = "white"
         nameText.text = name;
         nameText.textWrapping = true;
@@ -366,7 +366,7 @@ export class Kart extends TransformNode {
     private setUpParticleSystems(scene: Scene) {
         this._particlesLeft = this.setUpSpeedParticles(scene, this._particlesConeLeft, new Vector3(-.8, 0.5, 2), new Vector3(-.8, 0.0, -.3))
         this._particlesRight = this.setUpSpeedParticles(scene, this._particlesConeRight, new Vector3(.8, 0.5, 2), new Vector3(.8, 0.0, -.3))
-        debugger;// this.setUpSpeedParticles(scene, this._particlesConeRight, this._particlesRight, new Vector3(.8, 0.1, 2), new Vector3(.8, 0.0, 1.5))
+        // this.setUpSpeedParticles(scene, this._particlesConeRight, this._particlesRight, new Vector3(.8, 0.1, 2), new Vector3(.8, 0.0, 1.5))
     }
 
     private setUpSpeedParticles(scene: Scene, cone: Mesh, minEmitBox: Vector3, maxEmitBox: Vector3): ParticleSystem {
