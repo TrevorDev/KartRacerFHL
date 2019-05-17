@@ -19,10 +19,10 @@ export class Multiplayer {
     constructor(public scene: Scene) {
     }
 
-    connectToRoom(roomName: string, trackedObject: Nullable<{ position: Vector3, rotationQuaternion: Quaternion }>) {
+    connectToRoom(roomName: string, playerName: string, trackedObject: Nullable<{ position: Vector3, rotationQuaternion: Quaternion }>) {
         var socket: SocketIO.Socket = io();
         this._socket = socket;
-        socket.emit("joinRoom", { roomName: "test" });
+        socket.emit("joinRoom", { roomName: "test", playerName: playerName });
         socket.on("joinRoomComplete", (e) => {
             this._raceId = e.raceId;
             this.localId = e.id;
@@ -38,10 +38,12 @@ export class Multiplayer {
                 e.forEach((p: any) => {
                     if (p.id != this.localId) {
                         if (!this.trackedServerObjects[p.id]) {
+                            const kart = new Kart(p.id, this.scene, false);
+                            kart.assignKartName(p.name);
                             this.trackedServerObjects[p.id] = {
                                 lastPose: { position: new Vector3(), rotation: new Quaternion() },
                                 targetPose: { position: new Vector3(), rotation: new Quaternion() },
-                                object: new Kart(p.id, this.scene, false),
+                                object: kart,
                             }
                             this.trackedServerObjects[p.id].object.rotationQuaternion = new Quaternion();
                         }
@@ -54,6 +56,7 @@ export class Multiplayer {
                     }
                 })
             })
+
             socket.on("userDisconnected", (id) => {
                 if (this.trackedServerObjects[id]) {
                     (this.trackedServerObjects[id].object as any).dispose();

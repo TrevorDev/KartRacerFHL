@@ -16,7 +16,7 @@ server.listen(port)
 
 // socket io configuration for multiplayer
 var io = sio(server)
-var rooms:any = {}
+var rooms: { [name: string]: { users: Array<any>, raceId: number } } = {}
 io.on('connection', function(socket:(sio.Socket & {customData:any})){
     socket.customData = {position: {x:0,y:0,z:0}, rotation: {x:0,y:0,z:0,w:0}};
     console.log('a user connected');
@@ -28,6 +28,7 @@ io.on('connection', function(socket:(sio.Socket & {customData:any})){
             }
         }
         socket.customData.roomName = e.roomName;
+        socket.customData.playerName = e.playerName;
         rooms[socket.customData.roomName].users.push(socket)
         socket.emit("joinRoomComplete", {id: socket.id, pingMS: pingMS, raceId: rooms[socket.customData.roomName].raceId})
     })
@@ -83,7 +84,7 @@ var repeat = (fn:Function, ms:number)=>{
 repeat(()=>{
     for(var key in rooms){
         var ret = rooms[key].users.map((s:sio.Socket & {customData:any})=>{
-            return {id: s.id, position: s.customData.position, rotation: s.customData.rotation}
+            return {id: s.id, name: s.customData.playerName, position: s.customData.position, rotation: s.customData.rotation}
         })
         rooms[key].users.forEach((s:sio.Socket & {customData:any})=>{
             s.emit("serverUpdate", ret);

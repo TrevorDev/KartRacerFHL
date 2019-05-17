@@ -54,7 +54,7 @@ var main = async () => {
         kartEngine.kart.reset();
 
         // Initialize Multiplayer
-        multiplayer.connectToRoom("testRoom", kartEngine.kart);
+        multiplayer.connectToRoom("testRoom", billboard.getRacerName(), kartEngine.kart);
         multiplayer.trackedObject = camera;
         
         menu.EnableHud();
