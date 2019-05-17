@@ -15,13 +15,17 @@ export class Kart extends TransformNode {
     private static readonly MAX_FALL_TIME_SECONDS: number = 2.0;
     private static readonly TURN_FILTER_STRENGTH: number = 0.1;
     private static readonly MAX_TURN_SCALAR: number = Math.PI * 2 / 3;
-    private static readonly FORWARD_VELOCITY_SCALAR: number = 3.0;
-    private static readonly VELOCITY_DECAY_SCALAR: number = 2.0;
+    private static readonly FORWARD_VELOCITY_SCALAR: number = 1.2;
+    private static readonly VELOCITY_DECAY_SCALAR: number = 4.0;
     private static readonly TURN_DECAY_SCALAR: number = 5.0;
     private static readonly BRAKE_SCALAR: number = 3.0;
     private static readonly SLOW_DURATION: number = 3000;
     private static readonly BOMB_DURATION: number = 2000;
     private static readonly BOOST_DURATION: number = 1000;
+    private static readonly BOOST_VELOCITY_FACTOR: number = 8;
+    private static readonly ACCELERATION: number = 0.28;
+    private static readonly DECCELERATION: number = 1.25;
+    private static readonly MAX_SPEED: number = 4.2;
 
     private _velocity: Vector3 = Vector3.Zero();
     private _relocity: number = 0.0;
@@ -34,7 +38,8 @@ export class Kart extends TransformNode {
     private _kartName : string = "";
     private _lastHazard: number = -1;
     private _bombHitTime: number = 0;
-    private _velocityFactor: number = 1;
+    private _velocityFactor: number;
+    private _currentVelocityFactor: number = 0;
     private _initialPosition: Vector3;
 
     private _initialLookAt: Vector3;
@@ -55,6 +60,7 @@ export class Kart extends TransformNode {
         KartEngine.instance.scene.addMesh(this._mesh)
         this._mesh.parent = this;
         this._locallyOwned = locallyOwned;
+        this.resetVelocityFactor();
 
         if (this._locallyOwned) {
             this._input = KartEngine.instance.inputSource;
@@ -202,6 +208,7 @@ export class Kart extends TransformNode {
             this._lastHazard = collisionId;
             this._bombHitTime = (new Date).getTime();
             this._velocityFactor = 0.5;
+            this.setCurrentVelocityFactor(true);
             this._state = "exploded";
         }
 
@@ -210,7 +217,8 @@ export class Kart extends TransformNode {
         {
             this._lastHazard = collisionId;
             this._boostHitTime = (new Date).getTime();
-            this._velocityFactor = 1.6;
+            this._velocityFactor = Kart.BOOST_VELOCITY_FACTOR;
+            this.setCurrentVelocityFactor(true);
             this._state = "fast";
         }
 
@@ -249,6 +257,7 @@ export class Kart extends TransformNode {
             this._lastHazard = collisionId;
             this._slowHitTime = (new Date).getTime();
             this._velocityFactor = 0.1;
+            this.setCurrentVelocityFactor(true);
             this._state = "slow";
         }
     }
@@ -289,11 +298,12 @@ export class Kart extends TransformNode {
 
         
         KartEngine.instance.assets.engineSound.setVolume(Scalar.Lerp(KartEngine.instance.assets.engineSound.getVolume(),this.getForward(), 0.1))
-        this._velocity.addInPlace(this.forward.scale(this.getForward() * Kart.FORWARD_VELOCITY_SCALAR * this._velocityFactor * this._deltaTime));
-
-        this._velocity.subtractInPlace(this.forward.scale(this.getBack() * this._deltaTime));
+        this._velocity.addInPlace(this.forward.scale(this.getForward() * Kart.FORWARD_VELOCITY_SCALAR * this._currentVelocityFactor * this._deltaTime));
+        this.setCurrentVelocityFactor(false);
 
         this._velocity.scaleInPlace(1.0 - (this.getBrake() * Kart.BRAKE_SCALAR * this._deltaTime));
+
+        this._velocity.subtractInPlace(this.forward.scale(this.getBack() * this._deltaTime));
     }
 
     private updateFromTrackProgress(): void {
@@ -319,7 +329,7 @@ export class Kart extends TransformNode {
         || (this._state == "fast" && (new Date).getTime() - this._boostHitTime > Kart.BOOST_DURATION)
         || (this._state == "slow" && (new Date).getTime() - this._slowHitTime > Kart.SLOW_DURATION))
         {
-            this._velocityFactor = 1;
+            this.resetVelocityFactor();
             this._state = "ok";
         }
 
@@ -353,10 +363,29 @@ export class Kart extends TransformNode {
         this._hits = 0;
         this._state = "ok";
         this._velocity.set(0,0,0);
-        this._velocityFactor = 1;
+        this.resetVelocityFactor();
         this.position = this._initialPosition;
         this.lookAt(this._initialLookAt);
         this.computeWorldMatrix();
+    }
+
+    private resetVelocityFactor() {
+        this._velocityFactor = Kart.MAX_SPEED;
+    }
+
+    private setCurrentVelocityFactor(hardReset: boolean = false)
+    {
+        if(hardReset) {
+            this._currentVelocityFactor = this._velocityFactor;
+        }
+        else {
+            if (this.getForward() > 0) {
+                this._currentVelocityFactor = Scalar.Lerp(this._currentVelocityFactor, this._velocityFactor, this._deltaTime * Kart.ACCELERATION);
+            }
+            else {
+                this._currentVelocityFactor = Scalar.Lerp(this._currentVelocityFactor, 0, this._deltaTime * Kart.DECCELERATION);
+            }
+        }
     }
 }
 
