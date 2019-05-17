@@ -71,7 +71,7 @@ export class KartEngine {
         this.onInputSourceChangedObservable.notifyObservers(this.inputSource);
 
         const camera = new FreeCamera("camera", new Vector3(0, 10, 3), this.scene);
-        await this.assets.loadAssets();
+        await this.assets.loadAssets(this.scene);
         
         this.kart = new Kart("player_kart", this.scene, true);
 

@@ -1,4 +1,3 @@
-import { Kart } from './kart';
 import { KartEngine } from "./engine";
 import { Track } from './track';
 import { Vector3, Quaternion, FreeCamera, Mesh, CubeMapToSphericalPolynomialTools, StandardMaterial } from "@babylonjs/core";
@@ -9,7 +8,6 @@ import { Skybox } from './skybox';
 
 // Create game engine
 var kartEngine = new KartEngine();
-var initMP = false;
 var menu: Menu = null;
 
 var main = async () => {
@@ -21,7 +19,8 @@ var main = async () => {
         varianceSeed: 1,
         lateralVariance: 50,
         heightVariance: 20,
-        width: 25,
+        width: 35,
+        height: 5
     });
     var skybox = new Skybox(kartEngine.scene);
 
@@ -50,14 +49,14 @@ var main = async () => {
         kartEngine.kart.initializeTrackProgress(checkpoints, startingPosition, startingRotation);
 
         let camera = kartEngine.kart.activateKartCamera();
+        menu = new Menu(camera, kartEngine.scene);
+        kartEngine.kart.PlayerMenu = menu;
         kartEngine.kart.reset();
 
         // Initialize Multiplayer
         multiplayer.connectToRoom("testRoom", kartEngine.kart);
         multiplayer.trackedObject = camera;
-
-        initMP = true;
-        menu = new Menu(camera, kartEngine.scene);
+        
         menu.EnableHud();
         kartEngine.kart.assignKartName(billboard.getRacerName());
         menu.StartTimer();

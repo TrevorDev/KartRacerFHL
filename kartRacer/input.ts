@@ -1,4 +1,4 @@
-import { Scene, ActionManager, ExecuteCodeAction, Observer, Engine } from '@babylonjs/core';
+import { Scene, ActionManager, ExecuteCodeAction, Observer, Engine, Scalar } from '@babylonjs/core';
 import { KartEngine } from './engine';
 
 export interface IKartInput {
@@ -9,10 +9,10 @@ export interface IKartInput {
 }
 
 export class KartInput_KeyboardAndTouch implements IKartInput {
-    public horizontal: number;
-    public accelerate: number;
-    public brake: number;
-    public drift: boolean;
+    public horizontal: number = 0;
+    public accelerate: number = 0;
+    public brake: number = 0;
+    public drift: boolean = false;
 
     // https://www.babylonjs-playground.com/#Y1W3F9
 
@@ -31,13 +31,15 @@ export class KartInput_KeyboardAndTouch implements IKartInput {
         };
 
         // Left/Right axis
-        this.horizontal = 0;
         if (this._keymap["a"] || this._keymap["A"] || this._keymap["ArrowLeft"]) {
-            this.horizontal -= 1;
+            this.horizontal = Scalar.Lerp(this.horizontal, -1, 0.2);
         }
-        if (this._keymap["d"] || this._keymap["D"] || this._keymap["ArrowRight"]) {
-            this.horizontal += 1;
-        };
+        else if (this._keymap["d"] || this._keymap["D"] || this._keymap["ArrowRight"]) {
+            this.horizontal = Scalar.Lerp(this.horizontal, 1, 0.2);
+        }
+        else {
+            this.horizontal = Scalar.Lerp(this.horizontal, 0, 0.4);
+        }
 
         // Brake
         this.brake = 0;
