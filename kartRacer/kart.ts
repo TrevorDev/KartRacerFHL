@@ -44,7 +44,7 @@ export class Kart extends TransformNode {
     private _bombHitTime: number = 0;
     private _velocityFactor: number = 1;
     private _initialPosition: Vector3;
-    private _arrowPosition: Mesh;
+    private _archPosition: Mesh;
 
     private _initialLookAt: Vector3;
     private _checkpoints: Vector3[];
@@ -88,7 +88,7 @@ export class Kart extends TransformNode {
             this.beforeRenderUpdate();
         });
 
-        this._arrowPosition = this.createCheckpointArrow();
+        this._archPosition = this.createCheckpointArrow();
 
         return this._camera;
     }
@@ -138,21 +138,16 @@ export class Kart extends TransformNode {
     }
 
     private createCheckpointArrow(): Mesh {
-        var arrowshaft = Mesh.CreateBox("arrowshaft",1,this._scene);
-        arrowshaft.scaling.y = 1.75;
-        arrowshaft.position.y = 1.25;
-        var arrowpoint = Mesh.CreateCylinder("arrowpoint", 1, 1, 1, 3, this._scene);
-        arrowpoint.rotate(new Vector3(0,0,1),0.5 * Math.PI)
-        arrowpoint.rotate(new Vector3(0,1,1),Math.PI)
-        arrowpoint.scaling = new Vector3(1,1,2);
-        arrowpoint.position.y = -0.75
-        arrowpoint.parent = arrowshaft;
+        var arch = Mesh.CreateTorus("arch",35,2,16,this._scene);
+        arch.rotate(new Vector3(1,0,0),0.5 * Math.PI);
 
-        arrowpoint.isPickable = false;
-        arrowshaft.isPickable = false;
-        Animation.CreateAndStartAnimation("rotateArrow",arrowshaft,"rotation",60,120,arrowpoint.rotation, new Vector3(0,Math.PI,0),Animation.ANIMATIONLOOPMODE_CYCLE)
-        
-        return arrowshaft;
+        var viewPoint = Mesh.CreateBox("box",0.1,this._scene);
+        viewPoint.isPickable = false;
+        viewPoint.isVisible = false;
+
+        arch.parent = viewPoint;
+
+        return viewPoint;
     }
 
     private updateFromPhysics(): void {
@@ -347,7 +342,8 @@ export class Kart extends TransformNode {
             this._hits++;
             if(this._hits < this._checkpoints.length)
             {
-                this._arrowPosition.position = this._checkpoints[this._hits].add(new Vector3(0,10,0));
+                this._archPosition.position = this._checkpoints[this._hits];
+                this._archPosition.lookAt(this._checkpoints[((this._hits+1) % this._checkpoints.length)]);
             }
         }
     }
@@ -545,6 +541,8 @@ export class Kart extends TransformNode {
         this.computeWorldMatrix();
         this.TrackTime = "";
         this.PlayerMenu.SetWinText("");
+        this._archPosition.position = this._checkpoints[0];
+        this._archPosition.lookAt(this._checkpoints[1]);
         this.PlayerMenu.StartTimer();
     }
 }
