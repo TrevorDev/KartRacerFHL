@@ -1,4 +1,3 @@
-import { Kart } from './kart';
 import { KartEngine } from "./engine";
 import { Track } from './track';
 import { Vector3, Quaternion, FreeCamera, Mesh, CubeMapToSphericalPolynomialTools, StandardMaterial } from "@babylonjs/core";
@@ -9,7 +8,6 @@ import { Skybox } from './skybox';
 
 // Create game engine
 var kartEngine = new KartEngine();
-var initMP = false;
 var menu: Menu = null;
 
 var main = async () => {
@@ -57,7 +55,6 @@ var main = async () => {
         multiplayer.connectToRoom("testRoom", kartEngine.kart);
         multiplayer.trackedObject = camera;
 
-        initMP = true;
         menu = new Menu(camera, kartEngine.scene);
         menu.EnableHud();
         kartEngine.kart.assignKartName(billboard.getRacerName());

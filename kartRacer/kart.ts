@@ -1,12 +1,12 @@
 import { IKartInput } from "./input";
 import { KartEngine } from "./engine";
-import { Engine, Mesh, Scene, Vector3, Ray, Quaternion, FreeCamera, TransformNode, StandardMaterial, Scalar } from "@babylonjs/core";
+import { Engine, Mesh, Scene, Vector3, Ray, Quaternion, FreeCamera, TransformNode, StandardMaterial, Scalar, AbstractMesh, AnimationGroup } from "@babylonjs/core";
 import { AdvancedDynamicTexture, StackPanel, TextBlock } from "@babylonjs/gui";
 
 export class Kart extends TransformNode {
-    private _mesh: Mesh;
+    private _mesh: AbstractMesh;
+    private _animationGroups?: { wheelsRotation: AnimationGroup, steering: AnimationGroup };
     private _camera: FreeCamera;
-    private _locallyOwned: boolean;
     private _input: IKartInput;
     private _hits: number = 0;
 
@@ -49,15 +49,22 @@ export class Kart extends TransformNode {
     constructor(kartName: string, scene: Scene, locallyOwned: boolean = true) {
         super(kartName, scene);
 
-        // this is a placeholder so that we actually spawn a Kart on game start.
-        this._mesh = KartEngine.instance.assets.kart.clone("model");
-        this._mesh.getChildMeshes().forEach(child => child.isPickable = false);
-        KartEngine.instance.scene.addMesh(this._mesh)
-        this._mesh.parent = this;
-        this._locallyOwned = locallyOwned;
-
-        if (this._locallyOwned) {
+        if (locallyOwned) {
             this._input = KartEngine.instance.inputSource;
+            const mainKartInfo = KartEngine.instance.assets.mainKartInfo;
+            this._animationGroups = mainKartInfo.animationGroups;
+            // this._animationGroups.wheelsRotation.play(true);
+            // this._animationGroups.wheelsRotation.speedRatio = 0;
+            this._animationGroups.steering.play(true);
+            this._animationGroups.steering.pause();
+            this._mesh = mainKartInfo.mesh;
+            this._mesh.name = "model";
+            this._mesh.parent = this;
+        }
+        else {
+            this._mesh = KartEngine.instance.assets.kart.createInstance("model");
+            this._mesh.isPickable = false;
+            this._mesh.parent = this;
         }
     }
 
@@ -287,13 +294,20 @@ export class Kart extends TransformNode {
 
         this.rotateAround(this.position, this.up, this._relocity);
 
-        
         KartEngine.instance.assets.engineSound.setVolume(Scalar.Lerp(KartEngine.instance.assets.engineSound.getVolume(),this.getForward(), 0.1))
         this._velocity.addInPlace(this.forward.scale(this.getForward() * Kart.FORWARD_VELOCITY_SCALAR * this._velocityFactor * this._deltaTime));
 
         this._velocity.subtractInPlace(this.forward.scale(this.getBack() * this._deltaTime));
 
         this._velocity.scaleInPlace(1.0 - (this.getBrake() * Kart.BRAKE_SCALAR * this._deltaTime));
+
+        if (this._animationGroups) {
+            // const wheelsRotation = this._animationGroups.wheelsRotation;
+            // wheelsRotation.speedRatio = this._velocity.length();
+
+            const steering = this._animationGroups.steering;
+            steering.goToFrame((this._input.horizontal + 1) * 0.5 * steering.to);
+        }
     }
 
     private updateFromTrackProgress(): void {

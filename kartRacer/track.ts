@@ -154,7 +154,7 @@ export class Track {
             uvs: this.createUVs(trackPoints, [0, 0.15]),
         }, scene);
 
-        const material = this.createMaterial("wall", scene);
+        const material = this.createMaterial("aprons", scene);
         material.albedoTexture = this.createTexture("public/textures/SimpleTrack_basecolor.png", scene, vScale);
 
         right.material = material;
@@ -176,7 +176,7 @@ export class Track {
             pathArray: trackPoints.map(p => [p.leftApron, p.leftFlat])
         }, scene);
 
-        const material = this.createMaterial("wall", scene);
+        const material = this.createMaterial("flats", scene);
 
         right.material = material;
         right.parent = flats;
