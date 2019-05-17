@@ -12,16 +12,18 @@ export class Kart extends TransformNode {
     private _hits: number = 0;
     private _particlesLeft: ParticleSystem;
     private _particlesRight: ParticleSystem;
+    private _particlesState: ParticleSystem;
     private _particlesConeLeft: Mesh;
     private _particlesConeRight: Mesh;
+    private _particlesSphere: Mesh;
 
     private static readonly UP_GROUNDED_FILTER_STRENGTH: number = 7.0;
     private static readonly UP_FALLING_FILTER_STRENGTH: number = 1.0;
     private static readonly MAX_FALL_TIME_SECONDS: number = 2.0;
     private static readonly TURN_FILTER_STRENGTH: number = 0.1;
     private static readonly MAX_TURN_SCALAR: number = Math.PI * 2 / 3;
-    private static readonly FORWARD_VELOCITY_SCALAR: number = 3.0;
-    private static readonly VELOCITY_DECAY_SCALAR: number = 4.0;
+    private static readonly FORWARD_VELOCITY_SCALAR: number = 2.0;
+    private static readonly VELOCITY_DECAY_SCALAR: number = 2.0;
     private static readonly TURN_DECAY_SCALAR: number = 5.0;
     private static readonly BRAKE_SCALAR: number = 3.0;
     private static readonly SLOW_DURATION: number = 3000;
@@ -71,6 +73,7 @@ export class Kart extends TransformNode {
         }
         else {
             this._mesh = KartEngine.instance.assets.kart.createInstance("model");
+            this._mesh.scaling.scaleInPlace(0.05);
             this._mesh.isPickable = false;
             this._mesh.parent = this;
         }
@@ -389,9 +392,32 @@ export class Kart extends TransformNode {
     }
 
     private setUpParticleSystems(scene: Scene) {
-        this._particlesLeft = this.setUpSpeedParticles(scene, this._particlesConeLeft, new Vector3(-.8, 0.5, 2), new Vector3(-.8, 0.0, -.3))
-        this._particlesRight = this.setUpSpeedParticles(scene, this._particlesConeRight, new Vector3(.8, 0.5, 2), new Vector3(.8, 0.0, -.3))
-        // this.setUpSpeedParticles(scene, this._particlesConeRight, this._particlesRight, new Vector3(.8, 0.1, 2), new Vector3(.8, 0.0, 1.5))
+        const scaling = this.scaling;
+        this._particlesLeft = this.setUpSpeedParticles(scene, this._particlesConeLeft, new Vector3(-scaling.x, 0.5, 2 * scaling.z), new Vector3(-scaling.x, 0.0, 0))
+        this._particlesRight = this.setUpSpeedParticles(scene, this._particlesConeRight, new Vector3(scaling.x, 0.5, 2 * scaling.z), new Vector3(scaling.x, 0.0, 0))
+        this._particlesSphere = MeshBuilder.CreateSphere("sphere", {diameter:scaling.x * 2, segments: 8}, scene);
+        this._particlesSphere.position= this.position
+        this._particlesSphere.parent = this;
+        this._particlesSphere.material = new StandardMaterial("mat", scene);
+        this._particlesSphere.visibility = 0;
+        this._particlesSphere.isPickable = false;
+
+        this._particlesState= new ParticleSystem("particles", 2000, scene);
+        this._particlesState.particleTexture = new Texture("/public/textures/flare.png", scene);
+        this._particlesState.emitter = this._particlesSphere; 
+        this._particlesState.createSphereEmitter(scaling.x);
+        this._particlesState.colorDead = new Color4(0, 0.0, 0.0, 0.0);
+        this._particlesState.minSize = 0.3;
+        this._particlesState.maxSize = 0.5;
+        this._particlesState.minLifeTime = 2;
+        this._particlesState.maxLifeTime = 5;
+        this._particlesState.emitRate = 500;
+        this._particlesState.blendMode = ParticleSystem.BLENDMODE_ONEONE;
+        this._particlesState.minEmitPower = 1;
+        this._particlesState.maxEmitPower = 2;
+        this._particlesState.updateSpeed = 0.08;        
+        this._particlesState.start();
+    
     }
 
     private setUpSpeedParticles(scene: Scene, cone: Mesh, minEmitBox: Vector3, maxEmitBox: Vector3): ParticleSystem {
@@ -409,8 +435,8 @@ export class Kart extends TransformNode {
         particlesSystem.maxEmitBox = maxEmitBox;
 
         particlesSystem.colorDead = new Color4(0, 0.0, 0.0, 0.0);
-        particlesSystem.minSize = 0.05;
-        particlesSystem.maxSize = 0.1;
+        particlesSystem.minSize = 0.1;
+        particlesSystem.maxSize = 0.15;
         particlesSystem.minLifeTime = 0.02;
         particlesSystem.maxLifeTime = 0.05;
         particlesSystem.emitRate = 500;
@@ -441,6 +467,7 @@ export class Kart extends TransformNode {
             this._particlesLeft.maxLifeTime = 2;
             this._particlesRight.color1 = gray1;
             this._particlesRight.color2 = gray2;
+            this._particlesRight.maxLifeTime = 2;
         }
 
         else if (speed >= .7 && speed < 1.3) {
@@ -480,7 +507,31 @@ export class Kart extends TransformNode {
     private updateParticles(speed: number) {
         this.updateSpeedParticle(speed);
 
-        //TODO: Update particles for car state (poisoned, exploded, etc.).
+        if (this._state == "slow")
+        {
+            this._particlesState.color1 = new Color4(.6, 0, .9, 1);
+            this._particlesState.color2 = new Color4(.5, 0, .8, 1);
+            this._particlesState.emitRate = 500;
+        }
+
+        else if (this._state == "exploded")
+        {
+            this._particlesState.color1 = new Color4(0.5, 0.5, 0.5, 1);
+            this._particlesState.color2 = new Color4(0.8, 0, 0, 1);
+            this._particlesState.emitRate = 500;
+        }
+
+        else if (this._state == "fast")
+        {
+            this._particlesState.color1 = new Color4(0.0, 0, .8, 1);
+            this._particlesState.color2 = new Color4(0.0, .8, 0, 1);
+            this._particlesState.emitRate = 500;
+        }
+
+        else
+        {
+            this._particlesState.emitRate = 0;
+        }
     }
 
 
@@ -492,8 +543,6 @@ export class Kart extends TransformNode {
         this.position = this._initialPosition;
         this.lookAt(this._initialLookAt);
         this.computeWorldMatrix();
-        Tools.DelayAsync(3000).then(() => {
-            this.PlayerMenu.SetWinText("");
-        });
+        this.PlayerMenu.SetWinText("");
     }
 }

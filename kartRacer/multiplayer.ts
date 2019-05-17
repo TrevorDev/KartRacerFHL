@@ -63,6 +63,7 @@ export class Multiplayer {
 
             socket.on("raceComplete", (info) => {
                 if(!this._waitingForNextRace){
+                    this._waitingForNextRace = true;
                     KartEngine.instance.kart.PlayerMenu.SetWinText("GG!  The winner is\n" + info.winnerName);
                     setTimeout(() => {
                         this._raceId = info.raceId;
