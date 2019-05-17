@@ -1,6 +1,6 @@
 import { IKartInput } from "./input";
 import { KartEngine } from "./engine";
-import { Engine, Mesh, Scene, Vector3, Ray, Quaternion, FreeCamera, TransformNode, StandardMaterial, Scalar, AbstractMesh, AnimationGroup, ParticleSystem, MeshBuilder, Texture, Color4, Tools } from "@babylonjs/core";
+import { Engine, Mesh, Scene, Vector3, Ray, Quaternion, FreeCamera, TransformNode, StandardMaterial, Scalar, AbstractMesh, AnimationGroup, ParticleSystem, MeshBuilder, Texture, Color4, Tools, PickingInfo } from "@babylonjs/core";
 import { AdvancedDynamicTexture, StackPanel, TextBlock } from "@babylonjs/gui";
 import { Menu } from "./menu";
 
@@ -22,6 +22,7 @@ export class Kart extends TransformNode {
     private static readonly MAX_FALL_TIME_SECONDS: number = 2.0;
     private static readonly TURN_FILTER_STRENGTH: number = 0.1;
     private static readonly MAX_TURN_SCALAR: number = Math.PI * 2 / 3;
+    private static readonly WALL_REBOUND_FACTOR: number = 1.6;
     private static readonly FORWARD_VELOCITY_SCALAR: number = 2.0;
     private static readonly VELOCITY_DECAY_SCALAR: number = 2.0;
     private static readonly TURN_DECAY_SCALAR: number = 5.0;
@@ -93,6 +94,7 @@ export class Kart extends TransformNode {
     public assignKartName(name: string): void {
         var namePlane = Mesh.CreatePlane("namePlane", 3.5, this._scene);
         namePlane.material = new StandardMaterial("", this._scene)
+        namePlane.isPickable = false;
 
         var nameMesh = AdvancedDynamicTexture.CreateForMesh(namePlane);
         var stackPanel = new StackPanel();
@@ -134,7 +136,7 @@ export class Kart extends TransformNode {
         return this._kartName;
     }
 
-    private updateFromPhysics(): void {
+    private updateFromTrackPhysics(): void {
         var ray = new Ray(this.position, this.up.scale(-1.0), 0.7);
         var hit = KartEngine.instance.scene.pickWithRay(ray);
         if (hit.hit) {
@@ -184,6 +186,32 @@ export class Kart extends TransformNode {
         var forward = Vector3.Cross(this.right, this._filteredUp);
         var right = Vector3.Cross(this._filteredUp, forward);
         this.rotationQuaternion = Quaternion.RotationQuaternionFromAxis(right, this._filteredUp, forward);
+    }
+
+    private updateFromWallPhysics(): void {
+        var hit: PickingInfo;
+        
+        var ray = new Ray(this.up, Vector3.Zero(), 0.0);
+        ray.origin.scaleInPlace(0.5);
+        ray.origin.addInPlace(this.position);
+        [this.forward, this.right, this.forward.scale(-1.0), this.right.scale(-1.0)].forEach((direction) => {
+            ray.direction = direction;
+            ray.length = 2.0;
+            hit = KartEngine.instance.scene.pickWithRay(ray);
+            if (hit.hit) {
+                var normal = hit.getNormal(true, true);
+                var velocityNormalDot = Vector3.Dot(this._velocity, normal);
+
+                if (velocityNormalDot < 0.0) {
+                    this._velocity.subtractInPlace(normal.scale(Kart.WALL_REBOUND_FACTOR * velocityNormalDot));
+                }
+
+                var projection = normal.scale(Vector3.Dot(normal, direction.scale(-hit.distance)));
+                if (projection.lengthSquared() < 1.0) {
+                    this.position.addInPlace(normal.scale(1.0 - projection.length()));
+                }
+            }
+        });
     }
 
     private checkHazardCollision(name: string): number {
@@ -344,7 +372,8 @@ export class Kart extends TransformNode {
             this.updateFromTrackProgress();
         }
 
-        this.updateFromPhysics();
+        this.updateFromWallPhysics();
+        this.updateFromTrackPhysics();
         this.updateFromHazards();
 
         if (this._state != "exploded") {
@@ -402,6 +431,7 @@ export class Kart extends TransformNode {
         cone.parent = this;
         cone.material = new StandardMaterial("mat", scene);
         cone.visibility = 0;
+        cone.isPickable = false;
 
         const particlesSystem = new ParticleSystem("particles", 2000, scene);
         particlesSystem.particleTexture = new Texture("/public/textures/flare.png", scene);
