@@ -389,7 +389,7 @@ export class Kart extends TransformNode {
         this._particlesState.maxSize = 0.5;
         this._particlesState.minLifeTime = 2;
         this._particlesState.maxLifeTime = 5;
-        this._particlesState.emitRate = 500;
+        this._particlesState.emitRate = 0;
         this._particlesState.blendMode = ParticleSystem.BLENDMODE_ONEONE;
         this._particlesState.minEmitPower = 1;
         this._particlesState.maxEmitPower = 2;
@@ -417,7 +417,7 @@ export class Kart extends TransformNode {
         particlesSystem.maxSize = 0.15;
         particlesSystem.minLifeTime = 0.02;
         particlesSystem.maxLifeTime = 0.05;
-        particlesSystem.emitRate = 500;
+        particlesSystem.emitRate = 0;
         particlesSystem.blendMode = ParticleSystem.BLENDMODE_ONEONE;
         particlesSystem.direction1 = new Vector3(0, 0, -1);
         particlesSystem.direction2 = new Vector3(0, 1, -1);
