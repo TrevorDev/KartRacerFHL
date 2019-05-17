@@ -1,6 +1,6 @@
 import { IKartInput } from "./input";
 import { KartEngine } from "./engine";
-import { Engine, Mesh, Scene, Vector3, Ray, Quaternion, FreeCamera, TransformNode, StandardMaterial, Scalar, AbstractMesh, AnimationGroup, ParticleSystem, MeshBuilder, Texture, Color4, Tools } from "@babylonjs/core";
+import { Engine, Mesh, Scene, Vector3, Ray, Quaternion, FreeCamera, TransformNode, StandardMaterial, Scalar, AbstractMesh, AnimationGroup, ParticleSystem, MeshBuilder, Texture, Color4, Tools, Animation } from "@babylonjs/core";
 import { AdvancedDynamicTexture, StackPanel, TextBlock } from "@babylonjs/gui";
 import { Menu } from "./menu";
 
@@ -42,6 +42,7 @@ export class Kart extends TransformNode {
     private _bombHitTime: number = 0;
     private _velocityFactor: number = 1;
     private _initialPosition: Vector3;
+    private _arrowPosition: Mesh;
 
     private _initialLookAt: Vector3;
     private _checkpoints: Vector3[];
@@ -83,6 +84,8 @@ export class Kart extends TransformNode {
         this._scene.registerBeforeRender(() => {
             this.beforeRenderUpdate();
         });
+
+        this._arrowPosition = this.createCheckpointArrow();
 
         return this._camera;
     }
@@ -129,6 +132,24 @@ export class Kart extends TransformNode {
 
     public getKartName(): string {
         return this._kartName;
+    }
+
+    private createCheckpointArrow(): Mesh {
+        var arrowshaft = Mesh.CreateBox("arrowshaft",1,this._scene);
+        arrowshaft.scaling.y = 1.75;
+        arrowshaft.position.y = 1.25;
+        var arrowpoint = Mesh.CreateCylinder("arrowpoint", 1, 1, 1, 3, this._scene);
+        arrowpoint.rotate(new Vector3(0,0,1),0.5 * Math.PI)
+        arrowpoint.rotate(new Vector3(0,1,1),Math.PI)
+        arrowpoint.scaling = new Vector3(1,1,2);
+        arrowpoint.position.y = -0.75
+        arrowpoint.parent = arrowshaft;
+
+        arrowpoint.isPickable = false;
+        arrowshaft.isPickable = false;
+        Animation.CreateAndStartAnimation("rotateArrow",arrowshaft,"rotation",60,120,arrowpoint.rotation, new Vector3(0,Math.PI,0),Animation.ANIMATIONLOOPMODE_CYCLE)
+        
+        return arrowshaft;
     }
 
     private updateFromPhysics(): void {
@@ -321,6 +342,10 @@ export class Kart extends TransformNode {
 
         if (diff.length() < 20) {
             this._hits++;
+            if(this._hits < this._checkpoints.length)
+            {
+                this._arrowPosition.position = this._checkpoints[this._hits].add(new Vector3(0,10,0));
+            }
         }
     }
 
