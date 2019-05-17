@@ -32,7 +32,8 @@ export class Kart extends TransformNode {
     private _lastSafeFilteredUp: Vector3 = Vector3.Zero();
     private _turnFactor: number = 0.0;
     private _kartName : string = "";
-    private _lastHazard: number = -1;
+    private _lastHazardId: number = -1;
+    private _lastHazardType: string = "";
     private _bombHitTime: number = 0;
     private _velocityFactor: number = 1;
     private _initialPosition: Vector3;
@@ -196,19 +197,21 @@ export class Kart extends TransformNode {
 
     private updateFromHazards(): void {
         let collisionId = this.checkHazardCollision("bombs");
-        if (collisionId != -1 && collisionId != this._lastHazard)
+        if (collisionId != -1 && (collisionId != this._lastHazardId || this._lastHazardType != "bomb"))
         {
             this._velocity.set(0.0, 1.2, 0.0);
-            this._lastHazard = collisionId;
+            this._lastHazardId = collisionId;
+            this._lastHazardType = "bomb";
             this._bombHitTime = (new Date).getTime();
             this._velocityFactor = 0.5;
             this._state = "exploded";
         }
 
         collisionId = this.checkHazardCollision("boosts"); 
-        if (collisionId != -1 && collisionId != this._lastHazard)
+        if (collisionId != -1 && (collisionId != this._lastHazardId || this._lastHazardType != "boost"))
         {
-            this._lastHazard = collisionId;
+            this._lastHazardId = collisionId;
+            this._lastHazardType = "boost";
             this._boostHitTime = (new Date).getTime();
             this._velocityFactor = 1.6;
             this._state = "fast";
@@ -240,13 +243,15 @@ export class Kart extends TransformNode {
                 this._velocity.scaleInPlace(speed);
             }
             
-            this._lastHazard = collisionId;
+            this._lastHazardId = collisionId;
+            this._lastHazardType = "bumper";
         }
         collisionId = this.checkHazardCollision("poison"); 
-        if (collisionId != -1 && collisionId != this._lastHazard)
+        if (collisionId != -1 && (collisionId != this._lastHazardId || this._lastHazardType != "poison"))
         {
             this._velocity.set(0.0, 0.0, 0.0);
-            this._lastHazard = collisionId;
+            this._lastHazardId = collisionId;
+            this._lastHazardType = "poison";
             this._slowHitTime = (new Date).getTime();
             this._velocityFactor = 0.1;
             this._state = "slow";
