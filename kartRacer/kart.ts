@@ -236,17 +236,52 @@ export class Kart extends TransformNode {
             return -1;
         }
 
-        const bombs = hazards.getChildMeshes();
+        const meshes = hazards.getChildMeshes();
 
-        for (var index = 0; index < bombs.length; ++index) {
-            const position = bombs[index].position;
+        for (var index = 0; index < meshes.length; ++index) {
+            const position = meshes[index].position;
             const distance = this.position.subtract(position).length();
-            if (distance < radiusCollision) {
+            if (distance < radiusCollision && meshes[index].isVisible == true) {
                 return index;
             }
         }
 
         return -1;
+    }
+
+    private dissapearHazard(name: string, index: number)
+    {
+        const hazards = (KartEngine.instance.scene as any).getTransformNodeByName(name);
+        const hazardMeshes = hazards.getChildMeshes();
+        const mesh =hazardMeshes[index];
+        hazardMeshes[index].isVisible = false;
+    } 
+
+    private resetHazard(name: string, index: number)
+    {
+        const hazards = (KartEngine.instance.scene as any).getTransformNodeByName(name);
+        const hazardMeshes = hazards.getChildMeshes();
+        hazardMeshes[index].isVisible = true;
+    }
+
+    private resetAllHazardsOfAType(name: string)
+    {
+        const hazards = (KartEngine.instance.scene as any).getTransformNodeByName(name);
+        const hazardMeshes = hazards.getChildMeshes();
+        for (var index = 0; index < hazardMeshes.length; ++index) 
+        {
+            hazardMeshes[index].isVisible = true;
+        }
+    }
+
+    private resetAllHazards()
+    {
+        this._lastHazardId = -1;
+        this._lastHazardType = "";
+        this.resetAllHazardsOfAType("bombs");
+        this.resetAllHazardsOfAType("poison");
+        this.resetAllHazardsOfAType("boosts");
+        this.resetAllHazardsOfAType("bumpers");
     }
 
     private updateFromHazards(): void {
@@ -259,6 +294,7 @@ export class Kart extends TransformNode {
             this._velocityFactor = 0.5;
             this.setCurrentVelocityFactor(true);
             this._state = "exploded";
+            this.dissapearHazard("bombs", collisionId);
         }
 
         collisionId = this.checkHazardCollision("boosts");
@@ -269,6 +305,7 @@ export class Kart extends TransformNode {
             this._velocityFactor = Kart.BOOST_VELOCITY_FACTOR;
             this.setCurrentVelocityFactor(true);
             this._state = "fast";
+            this.dissapearHazard("boosts", collisionId);
         }
 
         collisionId = this.checkHazardCollision("bumpers");
@@ -306,6 +343,8 @@ export class Kart extends TransformNode {
             this._velocityFactor = 0.1;
             this.setCurrentVelocityFactor(true);
             this._state = "slow";
+
+            this.dissapearHazard("poison", collisionId);
         }
     }
 
@@ -374,7 +413,7 @@ export class Kart extends TransformNode {
 
     private beforeRenderUpdate(): void {
         this._deltaTime = Engine.Instances[0].getDeltaTime() / 1000.0;
-        if (this._deltaTime > 0.3) {
+        if (this._deltaTime > 0.1) {
             return;
         }
 
@@ -567,6 +606,7 @@ export class Kart extends TransformNode {
         this.lookAt(this._initialLookAt);
         this.computeWorldMatrix();
         this.PlayerMenu.SetWinText("");
+        this.resetAllHazards();
     }
 
     private resetVelocityFactor() {
