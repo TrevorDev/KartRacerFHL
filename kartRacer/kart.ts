@@ -16,7 +16,7 @@ export class Kart extends TransformNode {
 
     private static readonly UP_GROUNDED_FILTER_STRENGTH: number = 7.0;
     private static readonly UP_FALLING_FILTER_STRENGTH: number = 1.0;
-    private static readonly MAX_FALL_TIME_SECONDS: number = 3.0;
+    private static readonly MAX_FALL_TIME_SECONDS: number = 2.0;
     private static readonly TURN_FILTER_STRENGTH: number = 0.1;
     private static readonly MAX_TURN_SCALAR: number = Math.PI * 2 / 3;
     private static readonly FORWARD_VELOCITY_SCALAR: number = 3.0;
