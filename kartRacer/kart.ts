@@ -364,9 +364,9 @@ export class Kart extends TransformNode {
     }
 
     private setUpParticleSystems(scene: Scene) {
-        this._particlesLeft = this.setUpSpeedParticles(scene, this._particlesConeLeft, new Vector3(-.8, 0.5, 2), new Vector3(-.8, 0.0, -.3))
-        this._particlesRight = this.setUpSpeedParticles(scene, this._particlesConeRight, new Vector3(.8, 0.5, 2), new Vector3(.8, 0.0, -.3))
-        // this.setUpSpeedParticles(scene, this._particlesConeRight, this._particlesRight, new Vector3(.8, 0.1, 2), new Vector3(.8, 0.0, 1.5))
+        const scaling = this.scaling;
+        this._particlesLeft = this.setUpSpeedParticles(scene, this._particlesConeLeft, new Vector3(-scaling.x, 0.5, 2 * scaling.z), new Vector3(-scaling.x, 0.0, 0))
+        this._particlesRight = this.setUpSpeedParticles(scene, this._particlesConeRight, new Vector3(scaling.x, 0.5, 2 * scaling.z), new Vector3(scaling.x, 0.0, 0))
     }
 
     private setUpSpeedParticles(scene: Scene, cone: Mesh, minEmitBox: Vector3, maxEmitBox: Vector3): ParticleSystem {
@@ -384,8 +384,8 @@ export class Kart extends TransformNode {
         particlesSystem.maxEmitBox = maxEmitBox;
 
         particlesSystem.colorDead = new Color4(0, 0.0, 0.0, 0.0);
-        particlesSystem.minSize = 0.05;
-        particlesSystem.maxSize = 0.1;
+        particlesSystem.minSize = 0.1;
+        particlesSystem.maxSize = 0.15;
         particlesSystem.minLifeTime = 0.02;
         particlesSystem.maxLifeTime = 0.05;
         particlesSystem.emitRate = 500;
@@ -416,6 +416,7 @@ export class Kart extends TransformNode {
             this._particlesLeft.maxLifeTime = 2;
             this._particlesRight.color1 = gray1;
             this._particlesRight.color2 = gray2;
+            this._particlesRight.maxLifeTime = 2;
         }
 
         else if (speed >= .7 && speed < 1.3) {
