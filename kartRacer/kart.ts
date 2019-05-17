@@ -1,7 +1,8 @@
 import { IKartInput } from "./input";
 import { KartEngine } from "./engine";
-import { Engine, Mesh, Scene, Vector3, Ray, Quaternion, FreeCamera, TransformNode, StandardMaterial, Scalar, AbstractMesh, AnimationGroup } from "@babylonjs/core";
+import { Engine, Mesh, Scene, Vector3, Ray, Quaternion, FreeCamera, TransformNode, StandardMaterial, Scalar, AbstractMesh, AnimationGroup, ParticleSystem, MeshBuilder, Texture, Color4, Tools } from "@babylonjs/core";
 import { AdvancedDynamicTexture, StackPanel, TextBlock } from "@babylonjs/gui";
+import { Menu } from "./menu";
 
 export class Kart extends TransformNode {
     private _mesh: AbstractMesh;
@@ -9,14 +10,18 @@ export class Kart extends TransformNode {
     private _camera: FreeCamera;
     private _input: IKartInput;
     private _hits: number = 0;
+    private _particlesLeft: ParticleSystem;
+    private _particlesRight: ParticleSystem;
+    private _particlesConeLeft: Mesh;
+    private _particlesConeRight: Mesh;
 
     private static readonly UP_GROUNDED_FILTER_STRENGTH: number = 7.0;
     private static readonly UP_FALLING_FILTER_STRENGTH: number = 1.0;
-    private static readonly MAX_FALL_TIME_SECONDS: number = 3.0;
+    private static readonly MAX_FALL_TIME_SECONDS: number = 2.0;
     private static readonly TURN_FILTER_STRENGTH: number = 0.1;
     private static readonly MAX_TURN_SCALAR: number = Math.PI * 2 / 3;
     private static readonly FORWARD_VELOCITY_SCALAR: number = 3.0;
-    private static readonly VELOCITY_DECAY_SCALAR: number = 2.0;
+    private static readonly VELOCITY_DECAY_SCALAR: number = 4.0;
     private static readonly TURN_DECAY_SCALAR: number = 5.0;
     private static readonly BRAKE_SCALAR: number = 3.0;
     private static readonly SLOW_DURATION: number = 3000;
@@ -31,8 +36,9 @@ export class Kart extends TransformNode {
     private _lastSafePosition: Vector3 = Vector3.Zero();
     private _lastSafeFilteredUp: Vector3 = Vector3.Zero();
     private _turnFactor: number = 0.0;
-    private _kartName : string = "";
-    private _lastHazard: number = -1;
+    private _kartName: string = "";
+    private _lastHazardId: number = -1;
+    private _lastHazardType: string = "";
     private _bombHitTime: number = 0;
     private _velocityFactor: number = 1;
     private _initialPosition: Vector3;
@@ -44,7 +50,8 @@ export class Kart extends TransformNode {
     private _slowHitTime: number = 0;
     private _state: string = "ok";
 
-    public TrackTime : string = "";
+    public TrackTime: string = "";
+    public PlayerMenu: Menu;
 
     constructor(kartName: string, scene: Scene, locallyOwned: boolean = true) {
         super(kartName, scene);
@@ -66,20 +73,21 @@ export class Kart extends TransformNode {
             this._mesh.isPickable = false;
             this._mesh.parent = this;
         }
+
+        this.setUpParticleSystems(scene);
     }
 
     public activateKartCamera(): FreeCamera {
         this.setup3rdPersonKartCamera();
 
-        this._scene.registerBeforeRender(() =>
-        {
+        this._scene.registerBeforeRender(() => {
             this.beforeRenderUpdate();
         });
 
         return this._camera;
     }
 
-    public assignKartName(name : string): void {
+    public assignKartName(name: string): void {
         var namePlane = Mesh.CreatePlane("namePlane", 2, this._scene);
         namePlane.material = new StandardMaterial("", this._scene)
 
@@ -95,15 +103,16 @@ export class Kart extends TransformNode {
         nameText.color = "white"
         nameText.text = name;
         nameText.textWrapping = true;
+        nameText.outlineColor = "black";
+        nameText.outlineWidth = 3;
         stackPanel.addControl(nameText);
-        namePlane.position.set(0,1,0);
+        namePlane.position.set(0, 1, 0);
         namePlane.parent = this;
 
         this._kartName = name;
     }
 
-    public initializeTrackProgress(checkpoints: Vector3[], startingPosition: Vector3, startingLookAt: Vector3): void
-    {
+    public initializeTrackProgress(checkpoints: Vector3[], startingPosition: Vector3, startingLookAt: Vector3): void {
         this._initialPosition = startingPosition;
         this._initialLookAt = startingLookAt;
         this._checkpoints = checkpoints;
@@ -114,13 +123,11 @@ export class Kart extends TransformNode {
         this._totalCheckpoints = checkpoints.length;
     }
 
-    public getTrackComplete(): number
-    {
+    public getTrackComplete(): number {
         return Math.round(this._hits / this._totalCheckpoints * 100);
     }
 
-    public getKartName(): string
-    {
+    public getKartName(): string {
         return this._kartName;
     }
 
@@ -140,8 +147,8 @@ export class Kart extends TransformNode {
             var normal = hit.getNormal(true, true);
 
             this._filteredUp = Vector3.Lerp(
-                this._filteredUp, 
-                normal, 
+                this._filteredUp,
+                normal,
                 Kart.UP_GROUNDED_FILTER_STRENGTH * this._deltaTime);
             this._filteredUp.normalize();
 
@@ -155,8 +162,8 @@ export class Kart extends TransformNode {
         }
         else {
             this._filteredUp = Vector3.Lerp(
-                this._filteredUp, 
-                Vector3.Up(), 
+                this._filteredUp,
+                Vector3.Up(),
                 Kart.UP_FALLING_FILTER_STRENGTH * this._deltaTime);
             this._filteredUp.normalize();
 
@@ -181,19 +188,16 @@ export class Kart extends TransformNode {
 
         const hazards = (KartEngine.instance.scene as any).getTransformNodeByName(name);
 
-        if (hazards == null)
-        {
+        if (hazards == null) {
             return -1;
         }
 
         const bombs = hazards.getChildMeshes();
 
-        for (var index = 0; index < bombs.length; ++index) 
-        {
+        for (var index = 0; index < bombs.length; ++index) {
             const position = bombs[index].position;
             const distance = this.position.subtract(position).length();
-            if (distance < radiusCollision)
-            {
+            if (distance < radiusCollision) {
                 return index;
             }
         }
@@ -203,57 +207,55 @@ export class Kart extends TransformNode {
 
     private updateFromHazards(): void {
         let collisionId = this.checkHazardCollision("bombs");
-        if (collisionId != -1 && collisionId != this._lastHazard)
-        {
+        if (collisionId != -1 && (collisionId != this._lastHazardId || this._lastHazardType != "bomb")) {
             this._velocity.set(0.0, 1.2, 0.0);
-            this._lastHazard = collisionId;
+            this._lastHazardId = collisionId;
+            this._lastHazardType = "bomb";
             this._bombHitTime = (new Date).getTime();
             this._velocityFactor = 0.5;
             this._state = "exploded";
         }
 
-        collisionId = this.checkHazardCollision("boosts"); 
-        if (collisionId != -1 && collisionId != this._lastHazard)
-        {
-            this._lastHazard = collisionId;
+        collisionId = this.checkHazardCollision("boosts");
+        if (collisionId != -1 && (collisionId != this._lastHazardId || this._lastHazardType != "boost")) {
+            this._lastHazardId = collisionId;
+            this._lastHazardType = "boost";
             this._boostHitTime = (new Date).getTime();
             this._velocityFactor = 1.6;
             this._state = "fast";
         }
 
-        collisionId = this.checkHazardCollision("bumpers"); 
-        if (collisionId != -1)
-        {
+        collisionId = this.checkHazardCollision("bumpers");
+        if (collisionId != -1) {
             const hazards = (KartEngine.instance.scene as any).getTransformNodeByName("bumpers");
             const bumpers = hazards.getChildMeshes();
             const bumper = bumpers[collisionId];
             const bumperPosition = bumper.position;
             let direction = this.position.subtract(bumperPosition);
-            direction.y =0;
+            direction.y = 0;
             direction.normalize();
 
-            const angle = Vector3.GetAngleBetweenVectors(this._velocity, direction, new Vector3(0,1,0));
-            if (angle> 2*Math.PI/3.0 && angle < 4*Math.PI/3.0 )
-            {
+            const angle = Vector3.GetAngleBetweenVectors(this._velocity, direction, new Vector3(0, 1, 0));
+            if (angle > 2 * Math.PI / 3.0 && angle < 4 * Math.PI / 3.0) {
                 this._velocity.set(-this._velocity.x, this._velocity.y, -this._velocity.z);
             }
-            else
-            {
-                const speed = Math.max(this._velocity.length()*.8, 0.3);
+            else {
+                const speed = Math.max(this._velocity.length() * .8, 0.3);
 
-                direction.scaleInPlace(this._velocity.length()*2);
+                direction.scaleInPlace(this._velocity.length() * 2);
                 this._velocity.addInPlace(direction);
                 this._velocity.normalize();
                 this._velocity.scaleInPlace(speed);
             }
-            
-            this._lastHazard = collisionId;
+
+            this._lastHazardId = collisionId;
+            this._lastHazardType = "bumper";
         }
-        collisionId = this.checkHazardCollision("poison"); 
-        if (collisionId != -1 && collisionId != this._lastHazard)
-        {
+        collisionId = this.checkHazardCollision("poison");
+        if (collisionId != -1 && (collisionId != this._lastHazardId || this._lastHazardType != "poison")) {
             this._velocity.set(0.0, 0.0, 0.0);
-            this._lastHazard = collisionId;
+            this._lastHazardId = collisionId;
+            this._lastHazardType = "poison";
             this._slowHitTime = (new Date).getTime();
             this._velocityFactor = 0.1;
             this._state = "slow";
@@ -264,27 +266,27 @@ export class Kart extends TransformNode {
         //return false ? 1.0 : 0.0;
         return Math.max(0, Math.min(1, this._input.accelerate));
     }
-    
+
     private getLeft(): number {
         //return false ? 1.0 : 0.0;
         return Math.max(0, Math.min(1, -this._input.horizontal));
     }
-    
+
     private getBack(): number {
         //return false ? 1.0 : 0.0;
         return Math.max(0, Math.min(1, -this._input.accelerate));
     }
-    
+
     private getRight(): number {
         //return false ? 1.0 : 0.0;
         return Math.max(0, Math.min(1, this._input.horizontal));
     }
-    
+
     private getBrake(): number {
         //return false ? 1.0 : 0.0;
         return Math.max(0, Math.min(1, this._input.brake));
     }
-    
+
     private updateFromControls(): void {
         this._turnFactor = Kart.TURN_FILTER_STRENGTH * this.getLeft();
         this._relocity = this._turnFactor * -Kart.MAX_TURN_SCALAR * this._deltaTime + (1.0 - this._turnFactor) * this._relocity;
@@ -294,7 +296,7 @@ export class Kart extends TransformNode {
 
         this.rotateAround(this.position, this.up, this._relocity);
 
-        KartEngine.instance.assets.engineSound.setVolume(Scalar.Lerp(KartEngine.instance.assets.engineSound.getVolume(),this.getForward(), 0.1))
+        KartEngine.instance.assets.engineSound.setVolume(Scalar.Lerp(KartEngine.instance.assets.engineSound.getVolume(), this.getForward(), 0.1))
         this._velocity.addInPlace(this.forward.scale(this.getForward() * Kart.FORWARD_VELOCITY_SCALAR * this._velocityFactor * this._deltaTime));
 
         this._velocity.subtractInPlace(this.forward.scale(this.getBack() * this._deltaTime));
@@ -317,43 +319,41 @@ export class Kart extends TransformNode {
 
         let diff = kartPos.subtract(this._checkpoints[this._hits])
 
-        if(diff.length() < 20)
-        {
+        if (diff.length() < 20) {
             this._hits++;
         }
     }
 
     private beforeRenderUpdate(): void {
         this._deltaTime = Engine.Instances[0].getDeltaTime() / 1000.0;
-        if(this._deltaTime > 0.3){
+        if (this._deltaTime > 0.3) {
             return;
         }
-        
+
         if ((this._state == "exploded" && (new Date).getTime() - this._bombHitTime > Kart.BOMB_DURATION)
-        || (this._state == "fast" && (new Date).getTime() - this._boostHitTime > Kart.BOOST_DURATION)
-        || (this._state == "slow" && (new Date).getTime() - this._slowHitTime > Kart.SLOW_DURATION))
-        {
+            || (this._state == "fast" && (new Date).getTime() - this._boostHitTime > Kart.BOOST_DURATION)
+            || (this._state == "slow" && (new Date).getTime() - this._slowHitTime > Kart.SLOW_DURATION)) {
             this._velocityFactor = 1;
             this._state = "ok";
         }
 
-        if(this._hits < this._checkpoints.length)
-        {
+        if (this._hits < this._checkpoints.length) {
             this.updateFromTrackProgress();
         }
-     
+
         this.updateFromPhysics();
         this.updateFromHazards();
 
-        if (this._state != "exploded")
-        {
+        if (this._state != "exploded") {
             this.updateFromControls();
         }
-        
+
         this._velocity.scaleInPlace(1.0 - (Kart.VELOCITY_DECAY_SCALAR * this._deltaTime));
         this._relocity *= (1.0 - (Kart.TURN_DECAY_SCALAR * this._deltaTime));
-    
-        this.position.addInPlace(this._velocity.scale(this._deltaTime*60));
+
+        this.position.addInPlace(this._velocity.scale(this._deltaTime * 60));
+
+        this.updateParticles(this._velocity.length());
     }
 
     private setup3rdPersonKartCamera() {
@@ -363,14 +363,112 @@ export class Kart extends TransformNode {
         this.getScene().activeCamera = this._camera;
     }
 
-    public reset(){
+    private setUpParticleSystems(scene: Scene) {
+        this._particlesLeft = this.setUpSpeedParticles(scene, this._particlesConeLeft, new Vector3(-.8, 0.5, 2), new Vector3(-.8, 0.0, -.3))
+        this._particlesRight = this.setUpSpeedParticles(scene, this._particlesConeRight, new Vector3(.8, 0.5, 2), new Vector3(.8, 0.0, -.3))
+        debugger;// this.setUpSpeedParticles(scene, this._particlesConeRight, this._particlesRight, new Vector3(.8, 0.1, 2), new Vector3(.8, 0.0, 1.5))
+    }
+
+    private setUpSpeedParticles(scene: Scene, cone: Mesh, minEmitBox: Vector3, maxEmitBox: Vector3): ParticleSystem {
+        cone = MeshBuilder.CreateCylinder("cone", { diameterBottom: 0, diameterTop: 1, height: 1 }, scene);
+        cone.position = this.position.subtract(new Vector3(0, 0, 1.5));
+        // cone.rotate(new Vector3(1,0,0), -Math.PI/2.0);
+        cone.parent = this;
+        cone.material = new StandardMaterial("mat", scene);
+        cone.visibility = 0;
+
+        const particlesSystem = new ParticleSystem("particles", 2000, scene);
+        particlesSystem.particleTexture = new Texture("/public/textures/flare.png", scene);
+        particlesSystem.emitter = cone;
+        particlesSystem.minEmitBox = minEmitBox;
+        particlesSystem.maxEmitBox = maxEmitBox;
+
+        particlesSystem.colorDead = new Color4(0, 0.0, 0.0, 0.0);
+        particlesSystem.minSize = 0.05;
+        particlesSystem.maxSize = 0.1;
+        particlesSystem.minLifeTime = 0.02;
+        particlesSystem.maxLifeTime = 0.05;
+        particlesSystem.emitRate = 500;
+        particlesSystem.blendMode = ParticleSystem.BLENDMODE_ONEONE;
+        particlesSystem.direction1 = new Vector3(0, 0, -1);
+        particlesSystem.direction2 = new Vector3(0, 1, -1);
+        particlesSystem.minAngularSpeed = 0;
+        particlesSystem.maxAngularSpeed = Math.PI / 8;
+        particlesSystem.minEmitPower = 0.5;
+        particlesSystem.maxEmitPower = 1;
+        particlesSystem.updateSpeed = 0.08;
+
+        particlesSystem.start();
+
+        return particlesSystem;
+    }
+
+    private updateSpeedParticle(speed: number) {
+        this._particlesLeft.emitRate = speed * 100;
+        this._particlesRight.emitRate = speed * 100;
+
+
+        if (speed > 0 && speed < .7) {
+            const gray1 = new Color4(0.3, 0.3, 0.3, 1.0);
+            const gray2 = new Color4(0.7, 0.7, 0.7, 1.0);
+            this._particlesLeft.color1 = gray1;
+            this._particlesLeft.color2 = gray2;
+            this._particlesLeft.maxLifeTime = 2;
+            this._particlesRight.color1 = gray1;
+            this._particlesRight.color2 = gray2;
+        }
+
+        else if (speed >= .7 && speed < 1.3) {
+            const yellow1 = new Color4(1, 1, 0.0, 1.0);
+            const yellow2 = new Color4(1, 0.8, 0.0, 1.0);
+            this._particlesLeft.color1 = yellow1;
+            this._particlesLeft.color2 = yellow2;
+            this._particlesLeft.maxLifeTime = .5;
+            this._particlesRight.color1 = yellow1;
+            this._particlesRight.color2 = yellow2;
+            this._particlesRight.maxLifeTime = .5;
+        }
+
+        else if (speed >= 1.3 && speed < 1.5) {
+            const red1 = new Color4(1, 0, 0.0, 1.0);
+            const red2 = new Color4(.7, 0.0, 0.0, 1.0);
+            this._particlesLeft.color1 = red1;
+            this._particlesLeft.color2 = red2;
+            this._particlesLeft.maxLifeTime = .4;
+            this._particlesRight.color1 = red1;
+            this._particlesRight.color2 = red2;
+            this._particlesRight.maxLifeTime = .4;
+        }
+
+        else {
+            const blue1 = new Color4(0, 1, 0.0, 1.0);
+            const blue2 = new Color4(0, 0.8, 0.0, 1.0);
+            this._particlesLeft.color1 = blue1;
+            this._particlesLeft.color2 = blue2;
+            this._particlesLeft.maxLifeTime = .4;
+            this._particlesRight.color1 = blue1;
+            this._particlesRight.color2 = blue2;
+            this._particlesRight.maxLifeTime = .4;
+        }
+    }
+
+    private updateParticles(speed: number) {
+        this.updateSpeedParticle(speed);
+
+        //TODO: Update particles for car state (poisoned, exploded, etc.).
+    }
+
+
+    public reset() {
         this._hits = 0;
         this._state = "ok";
-        this._velocity.set(0,0,0);
+        this._velocity.set(0, 0, 0);
         this._velocityFactor = 1;
         this.position = this._initialPosition;
         this.lookAt(this._initialLookAt);
         this.computeWorldMatrix();
+        Tools.DelayAsync(3000).then(() => {
+            this.PlayerMenu.SetWinText("");
+        });
     }
 }
-
