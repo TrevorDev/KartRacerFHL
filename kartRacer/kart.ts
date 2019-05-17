@@ -20,8 +20,8 @@ export class Kart extends TransformNode {
     private static readonly MAX_FALL_TIME_SECONDS: number = 2.0;
     private static readonly TURN_FILTER_STRENGTH: number = 0.1;
     private static readonly MAX_TURN_SCALAR: number = Math.PI * 2 / 3;
-    private static readonly FORWARD_VELOCITY_SCALAR: number = 3.0;
-    private static readonly VELOCITY_DECAY_SCALAR: number = 4.0;
+    private static readonly FORWARD_VELOCITY_SCALAR: number = 2.0;
+    private static readonly VELOCITY_DECAY_SCALAR: number = 2.0;
     private static readonly TURN_DECAY_SCALAR: number = 5.0;
     private static readonly BRAKE_SCALAR: number = 3.0;
     private static readonly SLOW_DURATION: number = 3000;
@@ -70,6 +70,7 @@ export class Kart extends TransformNode {
         }
         else {
             this._mesh = KartEngine.instance.assets.kart.createInstance("model");
+            this._mesh.scaling.scaleInPlace(0.05);
             this._mesh.isPickable = false;
             this._mesh.parent = this;
         }
