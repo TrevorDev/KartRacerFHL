@@ -422,7 +422,6 @@ export class Kart extends TransformNode {
         {
             this._hits = closestPos;
         }
-        console.log("STATUS: " + this._hits + " vs " + this._checkpoints.length);
     }
 
     private beforeRenderUpdate(): void {
