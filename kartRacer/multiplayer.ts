@@ -62,6 +62,7 @@ export class Multiplayer {
 
             socket.on("raceComplete", (info) => {
                 this._raceId = info.raceId;
+                KartEngine.instance.kart.PlayerMenu.SetWinText("GG!  The winner is\n" + info.winnerName);
                 KartEngine.instance.kart.reset();
             })
         })
@@ -90,9 +91,7 @@ export class Multiplayer {
         }
     }
 
-    public raceComplete(name:string){
-        console.log("hit")
-        KartEngine.instance.kart.PlayerMenu.SetWinText("GG!  The winner is\n" + name);
+    public raceComplete(name:string){        
         this._socket.emit("raceComplete", {name: name, raceId: this._raceId});
     }
 }
