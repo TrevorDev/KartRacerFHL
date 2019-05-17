@@ -142,7 +142,7 @@ export class Track {
         road.material = material;
         road.parent = track;
 
-        Tags.AddTagsTo(road, "drivable");
+        Tags.AddTagsTo(road, "road");
 
         return road;
     }
@@ -166,11 +166,11 @@ export class Track {
 
         right.material = material;
         right.parent = aprons;
-        Tags.AddTagsTo(right, "drivable");
+        Tags.AddTagsTo(right, "apron");
 
         left.material = material;
         left.parent = aprons;
-        Tags.AddTagsTo(left, "drivable");
+        Tags.AddTagsTo(left, "apron");
     }
 
     private createFlats(scene: Scene, trackPoints: Array<ITrackPoint>, track: TransformNode, vScale: number): void {
@@ -189,11 +189,11 @@ export class Track {
 
         right.material = material;
         right.parent = flats;
-        Tags.AddTagsTo(right, "drivable");
+        Tags.AddTagsTo(right, "flat");
 
         left.material = material;
         left.parent = flats;
-        Tags.AddTagsTo(left, "drivable");
+        Tags.AddTagsTo(left, "flat");
     }
 
     private createWalls(scene: Scene, trackPoints: Array<ITrackPoint>, track: TransformNode, vScale: number): void {
@@ -212,11 +212,11 @@ export class Track {
 
         right.material = material;
         right.parent = walls;
-        Tags.AddTagsTo(right, "drivable");
+        Tags.AddTagsTo(right, "wall");
 
         left.material = material;
         left.parent = walls;
-        Tags.AddTagsTo(left, "drivable");
+        Tags.AddTagsTo(left, "wall");
     }
 
     private createGoal(scene: Scene, trackPoints: Array<ITrackPoint>, track: TransformNode): void {

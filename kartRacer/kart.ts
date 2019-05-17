@@ -40,6 +40,11 @@ export class Kart extends TransformNode {
     private static readonly TOP_THRESHOLD: number = 3.7;
     private static readonly MAX_SPEED: number = 4.3;
 
+    private static readonly TARGET_GROUND_SPEED_FACTORS: { [type: string]: number } = {
+        "apron": 0.7,
+        "flat": 0.3,
+    };
+
     private _velocity: Vector3 = Vector3.Zero();
     private _relocity: number = 0.0;
     private _filteredUp: Vector3 = Vector3.Up();
@@ -56,6 +61,7 @@ export class Kart extends TransformNode {
     private _currentVelocityFactor: number = 0;
     private _initialPosition: Vector3;
     private _archPosition: Mesh;
+    private _groundSpeedFactor: number = 1;
 
     private _initialLookAt: Vector3;
     private _checkpoints: Vector3[];
@@ -151,10 +157,10 @@ export class Kart extends TransformNode {
     }
 
     private createCheckpointArrow(): Mesh {
-        var arch = Mesh.CreateTorus("arch",35,2,16,this._scene);
-        arch.rotate(new Vector3(1,0,0),0.5 * Math.PI);
+        var arch = Mesh.CreateTorus("arch", 35, 2, 16, this._scene);
+        arch.rotate(new Vector3(1, 0, 0), 0.5 * Math.PI);
 
-        var viewPoint = Mesh.CreateBox("box",0.1,this._scene);
+        var viewPoint = Mesh.CreateBox("box", 0.1, this._scene);
         viewPoint.isPickable = false;
         viewPoint.isVisible = false;
 
@@ -165,9 +171,7 @@ export class Kart extends TransformNode {
 
     private updateFromTrackPhysics(): void {
         var ray = new Ray(this.position, this.up.scale(-1.0), 0.7);
-        var hit = KartEngine.instance.scene.pickWithRay(ray, (m)=>{
-            return Tags.GetTags(m) == "drivable";
-        });
+        var hit = KartEngine.instance.scene.pickWithRay(ray, mesh => Tags.HasTags(mesh));
         if (hit.hit) {
             // MAGIC: There is a bug in the picking code where the barycentric coordinates
             // returned for bu and bv are actually bv and bw.  This causes the normals to be
@@ -193,6 +197,10 @@ export class Kart extends TransformNode {
             this._fallTime = 0.0;
             this._lastSafePosition.copyFrom(this.position);
             this._lastSafeFilteredUp.copyFrom(this._filteredUp);
+
+            const tags = Tags.GetTags(hit.pickedMesh);
+            const targetGroundSpeedFactor = Kart.TARGET_GROUND_SPEED_FACTORS[tags];
+            this._groundSpeedFactor = Scalar.Lerp(this._groundSpeedFactor, targetGroundSpeedFactor || 1.0, 0.1);
         }
         else {
             this._filteredUp = Vector3.Lerp(
@@ -219,7 +227,7 @@ export class Kart extends TransformNode {
 
     private updateFromWallPhysics(): void {
         var hit: PickingInfo;
-        
+
         var ray = new Ray(this.up, Vector3.Zero(), 0.0);
         ray.origin.scaleInPlace(0.5);
         ray.origin.addInPlace(this.position);
@@ -265,33 +273,28 @@ export class Kart extends TransformNode {
         return -1;
     }
 
-    private dissapearHazard(name: string, index: number)
-    {
+    private disappearHazard(name: string, index: number) {
         const hazards = (KartEngine.instance.scene as any).getTransformNodeByName(name);
         const hazardMeshes = hazards.getChildMeshes();
-        const mesh =hazardMeshes[index];
+        const mesh = hazardMeshes[index];
         hazardMeshes[index].isVisible = false;
-    } 
+    }
 
-    private resetHazard(name: string, index: number)
-    {
+    private resetHazard(name: string, index: number) {
         const hazards = (KartEngine.instance.scene as any).getTransformNodeByName(name);
         const hazardMeshes = hazards.getChildMeshes();
         hazardMeshes[index].isVisible = true;
     }
 
-    private resetAllHazardsOfAType(name: string)
-    {
+    private resetAllHazardsOfAType(name: string) {
         const hazards = (KartEngine.instance.scene as any).getTransformNodeByName(name);
         const hazardMeshes = hazards.getChildMeshes();
-        for (var index = 0; index < hazardMeshes.length; ++index) 
-        {
+        for (var index = 0; index < hazardMeshes.length; ++index) {
             hazardMeshes[index].isVisible = true;
         }
     }
 
-    private resetAllHazards()
-    {
+    private resetAllHazards() {
         this._lastHazardId = -1;
         this._lastHazardType = "";
         this.resetAllHazardsOfAType("bombs");
@@ -310,7 +313,7 @@ export class Kart extends TransformNode {
             this._velocityFactor = 0.5;
             this.setCurrentVelocityFactor(true);
             this._state = "exploded";
-            this.dissapearHazard("bombs", collisionId);
+            this.disappearHazard("bombs", collisionId);
         }
 
         collisionId = this.checkHazardCollision("boosts");
@@ -321,7 +324,7 @@ export class Kart extends TransformNode {
             this._velocityFactor = Kart.BOOST_VELOCITY_FACTOR;
             this.setCurrentVelocityFactor(true);
             this._state = "fast";
-            this.dissapearHazard("boosts", collisionId);
+            this.disappearHazard("boosts", collisionId);
         }
 
         collisionId = this.checkHazardCollision("bumpers");
@@ -360,7 +363,7 @@ export class Kart extends TransformNode {
             this.setCurrentVelocityFactor(true);
             this._state = "slow";
 
-            this.dissapearHazard("poison", collisionId);
+            this.disappearHazard("poison", collisionId);
         }
     }
 
@@ -424,10 +427,9 @@ export class Kart extends TransformNode {
 
         if (diff.length() < 30) {
             this._hits++;
-            if(this._hits < this._checkpoints.length)
-            {
+            if (this._hits < this._checkpoints.length) {
                 this._archPosition.position = this._checkpoints[this._hits];
-                this._archPosition.lookAt(this._checkpoints[((this._hits+1) % this._checkpoints.length)]);
+                this._archPosition.lookAt(this._checkpoints[((this._hits + 1) % this._checkpoints.length)]);
             }
         }
     }
@@ -460,7 +462,7 @@ export class Kart extends TransformNode {
         this._velocity.scaleInPlace(1.0 - (Kart.VELOCITY_DECAY_SCALAR * this._deltaTime));
         this._relocity *= (1.0 - (Kart.TURN_DECAY_SCALAR * this._deltaTime));
 
-        this.position.addInPlace(this._velocity.scale(this._deltaTime * 60));
+        this.position.addInPlace(this._velocity.scale(this._deltaTime * 60 * this._groundSpeedFactor));
 
         this.updateParticles(this._velocity.length());
     }
@@ -476,16 +478,16 @@ export class Kart extends TransformNode {
         const scaling = this.scaling;
         this._particlesLeft = this.setUpSpeedParticles(scene, this._particlesConeLeft, new Vector3(-scaling.x, 0.5, 2 * scaling.z), new Vector3(-scaling.x, 0.0, 0))
         this._particlesRight = this.setUpSpeedParticles(scene, this._particlesConeRight, new Vector3(scaling.x, 0.5, 2 * scaling.z), new Vector3(scaling.x, 0.0, 0))
-        this._particlesSphere = MeshBuilder.CreateSphere("sphere", {diameter:scaling.x * 2, segments: 8}, scene);
-        this._particlesSphere.position= this.position
+        this._particlesSphere = MeshBuilder.CreateSphere("sphere", { diameter: scaling.x * 2, segments: 8 }, scene);
+        this._particlesSphere.position = this.position
         this._particlesSphere.parent = this;
         this._particlesSphere.material = new StandardMaterial("mat", scene);
         this._particlesSphere.visibility = 0;
         this._particlesSphere.isPickable = false;
 
-        this._particlesState= new ParticleSystem("particles", 2000, scene);
+        this._particlesState = new ParticleSystem("particles", 2000, scene);
         this._particlesState.particleTexture = new Texture("/public/textures/flare.png", scene);
-        this._particlesState.emitter = this._particlesSphere; 
+        this._particlesState.emitter = this._particlesSphere;
         this._particlesState.createSphereEmitter(scaling.x);
         this._particlesState.colorDead = new Color4(0, 0.0, 0.0, 0.0);
         this._particlesState.minSize = 0.3;
@@ -496,9 +498,9 @@ export class Kart extends TransformNode {
         this._particlesState.blendMode = ParticleSystem.BLENDMODE_ONEONE;
         this._particlesState.minEmitPower = 1;
         this._particlesState.maxEmitPower = 2;
-        this._particlesState.updateSpeed = 0.08;        
+        this._particlesState.updateSpeed = 0.08;
         this._particlesState.start();
-    
+
     }
 
     private setUpSpeedParticles(scene: Scene, cone: Mesh, minEmitBox: Vector3, maxEmitBox: Vector3): ParticleSystem {
@@ -589,29 +591,25 @@ export class Kart extends TransformNode {
     private updateParticles(speed: number) {
         this.updateSpeedParticle(speed);
 
-        if (this._state == "slow")
-        {
+        if (this._state == "slow") {
             this._particlesState.color1 = new Color4(.6, 0, .9, 1);
             this._particlesState.color2 = new Color4(.5, 0, .8, 1);
             this._particlesState.emitRate = 500;
         }
 
-        else if (this._state == "exploded")
-        {
+        else if (this._state == "exploded") {
             this._particlesState.color1 = new Color4(0.5, 0.5, 0.5, 1);
             this._particlesState.color2 = new Color4(0.8, 0, 0, 1);
             this._particlesState.emitRate = 500;
         }
 
-        else if (this._state == "fast")
-        {
+        else if (this._state == "fast") {
             this._particlesState.color1 = new Color4(0.0, 0, .8, 1);
             this._particlesState.color2 = new Color4(0.0, .8, 0, 1);
             this._particlesState.emitRate = 500;
         }
 
-        else
-        {
+        else {
             this._particlesState.emitRate = 0;
         }
     }
@@ -638,31 +636,25 @@ export class Kart extends TransformNode {
         this._velocityFactor = Kart.MAX_SPEED;
     }
 
-    private setCurrentVelocityFactor(hardReset: boolean = false)
-    {
-        if(hardReset) {
+    private setCurrentVelocityFactor(hardReset: boolean = false) {
+        if (hardReset) {
             this._currentVelocityFactor = this._velocityFactor;
         }
         else {
-            let goalVelocityFactor:number = this._velocityFactor;
+            let goalVelocityFactor: number = this._velocityFactor;
             let acceleration = Kart.ACCELERATION;
-            if(this.getForward() === 0)
-            {
+            if (this.getForward() === 0) {
                 goalVelocityFactor = 0;
                 acceleration = Kart.DECCELERATION;
             }
-            else
-            {
-                if(this._currentVelocityFactor < Kart.BABY_THRESHOLD)
-                {
+            else {
+                if (this._currentVelocityFactor < Kart.BABY_THRESHOLD) {
                     acceleration = Kart.BABY_ACCELERATION;
                 }
-                if(this._currentVelocityFactor > Kart.TOP_THRESHOLD)
-                {
+                if (this._currentVelocityFactor > Kart.TOP_THRESHOLD) {
                     acceleration = Kart.TOP_ACCELERATION;
                 }
-                if(this._currentVelocityFactor > goalVelocityFactor)
-                {
+                if (this._currentVelocityFactor > goalVelocityFactor) {
                     acceleration = Kart.TOP_DECCELERATION;
                 }
             }
