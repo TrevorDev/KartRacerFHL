@@ -93,7 +93,7 @@ export class Billboard {
         if(this._racerName.text.length == 0)
         {
             let num = Math.floor(Math.random() * 10000);
-            return ("kart_" + num);
+            this._racerName.text = ("kart_" + num);
         }
         return this._racerName.text;
     }
