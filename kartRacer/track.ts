@@ -295,17 +295,17 @@ export class Track {
             instances.push(instance);
         }
 
-        const hazardPoints = this.getHazardPoints(1.5, 0.1, trackPoints);
+        const hazardPoints = this.getHazardPoints(1.5, 0.13, trackPoints);
         for (const hazardPoint of hazardPoints) {
             const hazardType = this.random();
             const rotationY = this.random();
-            if (hazardType < 0.25) {
+            if (hazardType < 0.2) {
                 createHazard("bomb", KartEngine.instance.assets.bomb, hazardPoint, rotationY, bombHazards, 1);
             }
-            else if (hazardType < 0.50) {
+            else if (hazardType < 0.6) {
                 createHazard("boost", KartEngine.instance.assets.boost, hazardPoint, rotationY, boostHazards, 8);
             }
-            else if (hazardType < 0.75) {
+            else if (hazardType < 0.8) {
                 createHazard("bumper", KartEngine.instance.assets.bumper, hazardPoint, rotationY, bumperHazards, 4);
             }
             else {
