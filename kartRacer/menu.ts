@@ -6,6 +6,7 @@ export class Menu {
     private _UI : Mesh;
     private _timeText : TextBlock = null;
     private _scoreText : TextBlock = null;
+    private _winText : TextBlock = null;
     private _startTime : number = null;
     private _stopTimer : boolean = false;
     private _time : number;
@@ -28,9 +29,9 @@ export class Menu {
         timeText.textHorizontalAlignment = TextBlock.HORIZONTAL_ALIGNMENT_RIGHT;
         timeText.fontSize = 40;
         timeText.color = "white"
-        timeText.text = "TIME: 00:00:00";
-        
-        stackPanel.addControl(timeText);
+        timeText.text = "00:00:00";
+        timeText.outlineColor = "black";
+        timeText.outlineWidth = 8;
 
         var scoreText = new TextBlock();
         scoreText.height = "50px";
@@ -39,12 +40,28 @@ export class Menu {
         scoreText.fontSize = 40;
         scoreText.color = "white"
         scoreText.text = "0% Complete";
+        scoreText.outlineColor = "black";
+        scoreText.outlineWidth = 8;
+
+        var winText = new TextBlock();
+        winText.height = "250px";
+        winText.width = "100%";
+        winText.textHorizontalAlignment = TextBlock.HORIZONTAL_ALIGNMENT_CENTER;
+        winText.textVerticalAlignment = TextBlock.VERTICAL_ALIGNMENT_CENTER;
+        winText.fontSize = 100;
+        winText.color = "white"
+        winText.text = "";
+        winText.outlineColor = "black"
+        winText.outlineWidth = 8;
         
+        stackPanel.addControl(timeText);
         stackPanel.addControl(scoreText);
+        stackPanel.addControl(winText);
 
         this._UI = hudPlane;
         this._timeText = timeText;
         this._scoreText = scoreText;
+        this._winText = winText;
         this._camera = camera;
     }
 
@@ -60,7 +77,7 @@ export class Menu {
             let time = Math.floor((new Date().getTime() - this._startTime) / 1000);
 
             this._time = time;
-            this._timeText.text = "TIME: " + this.FormatTime(time);
+            this._timeText.text = this.FormatTime(time);
         }
         
         this._scoreText.text = prog + "% Complete";
@@ -81,6 +98,11 @@ export class Menu {
         this._stopTimer = true;
         
         return this.FormatTime(this._time);
+    }
+
+    public SetWinText(text : string)
+    {
+        this._winText.text = text;
     }
 
     private FormatTime(time : number) : string
