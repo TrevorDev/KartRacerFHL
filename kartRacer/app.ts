@@ -59,7 +59,6 @@ var main = async () => {
         
         menu.EnableHud();
         kartEngine.kart.assignKartName(billboard.getRacerName());
-        menu.StartTimer();
         gameStarted = true;
     })
 
