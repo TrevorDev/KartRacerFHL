@@ -23,7 +23,6 @@ export interface ITrackPoint {
 export class Track {
     public readonly startPoint: Vector3;
     public readonly startTarget: Vector3;
-    public readonly controlPoints: Vector3[];
     public readonly trackPoints: ITrackPoint[];
 
     private _varianceSeed: number;
@@ -32,7 +31,7 @@ export class Track {
     constructor(scene: Scene, options: { radius: number, numPoints: number, varianceSeed: number, lateralVariance: number, heightVariance: number, width: number, height: number }) {
         this._varianceSeed = options.varianceSeed;
 
-        this.controlPoints = this.getTrackControlPoints(
+        const controlPoints = this.getControlPoints(
             options.numPoints,
             options.radius,
             options.lateralVariance,
@@ -40,15 +39,13 @@ export class Track {
         );
 
         const curvatureFactor = Math.ceil((options.radius + options.lateralVariance + options.heightVariance) * 0.05);
-
-        const curve = Curve3.CreateCatmullRomSpline(this.controlPoints, curvatureFactor, true);
+        const curve = this.getCurve(controlPoints, curvatureFactor);
+        const curveLength = curve.length();
         const points = curve.getPoints();
 
         function getPoint(index: number): Vector3 {
-            const length = points.length - 1;
-            while (index < 0) index += length;
-            while (index >= length) index -= length;
-            return points[index];
+            const length = points.length;
+            return points[(index + length) % length];
         }
 
         function getForward(index: number): Vector3 {
@@ -114,11 +111,13 @@ export class Track {
             };
         }
 
+        this.trackPoints.push(this.trackPoints[0]);
+
         this._track = new TransformNode("track", scene);
-        this.createRoad(scene, this.trackPoints, Math.round(curve.length() / options.width));
-        this.createAprons(scene, this.trackPoints, Math.round(curve.length() / options.width));
-        this.createFlats(scene, this.trackPoints, Math.round(curve.length() / options.width));
-        this.createWalls(scene, this.trackPoints, Math.round(curve.length() / (wallHeight * 5)));
+        this.createRoad(scene, this.trackPoints, Math.round(curveLength / options.width));
+        this.createAprons(scene, this.trackPoints, Math.round(curveLength / options.width));
+        this.createFlats(scene, this.trackPoints, Math.round(curveLength / options.width));
+        this.createWalls(scene, this.trackPoints, Math.round(curveLength / (wallHeight * 5)));
         this.createGoal(scene, this.trackPoints);
         this.createTrees(scene, this.trackPoints);
         this.createHazards(scene, this.trackPoints);
@@ -235,16 +234,9 @@ export class Track {
     }
 
     private createGoal(scene: Scene, trackPoints: Array<ITrackPoint>): void {
-        const percent = 0.015;
-        const limit = Math.round(trackPoints.length * percent);
-
-        const pathArray = new Array<Array<Vector3>>();
-        for (let index = 0; index < limit; ++index) {
-            pathArray.push([trackPoints[index].rightEdge, trackPoints[index].leftEdge]);
-        }
-
+        const indices = [0, 1];
         const goal = RibbonBuilder.CreateRibbon("goal", {
-            pathArray: pathArray
+            pathArray: indices.map(index => [trackPoints[index].rightEdge, trackPoints[index].leftEdge])
         });
 
         const material = this.createMaterial("goal", scene);
@@ -365,18 +357,37 @@ export class Track {
         return hazardPoints;
     }
 
-    private getTrackControlPoints(numPoints: number, radius: number, lateralVariance: number, heightVariance: number): Array<Vector3> {
+    private getControlPoints(numPoints: number, radius: number, lateralVariance: number, heightVariance: number): Array<Vector3> {
         const points = new Array<Vector3>(numPoints);
         for (let index = 0; index < numPoints; ++index) {
-            const rPert = lateralVariance;
-            const pert = this.random() * rPert - rPert / 2;
-            const x = (radius + pert) * Math.sin(2 * index * Math.PI / numPoints);
+            const pert = this.random() * lateralVariance - lateralVariance / 2;
+            const x = (radius + pert) * Math.sin(index * Scalar.TwoPi / numPoints);
             const y = this.random() * heightVariance - heightVariance / 2;
-            const z = (radius + pert) * Math.cos(2 * index * Math.PI / numPoints);
+            const z = (radius + pert) * Math.cos(index * Scalar.TwoPi / numPoints);
             points[index] = new Vector3(x, y, z);
         }
 
         return points;
+    }
+
+    private getCurve(controlPoints: Array<Vector3>, numPoints: number): Curve3 {
+        const points = new Array<Vector3>();
+        const count = controlPoints.length;
+        const step = 1 / numPoints;
+
+        for (let index = 0; index < count; ++index) {
+            for (let i = 0, amount = 0; i < numPoints; ++i, amount += step) {
+                points.push(Vector3.CatmullRom(
+                    controlPoints[(index + count - 1) % count],
+                    controlPoints[(index + count + 0) % count],
+                    controlPoints[(index + count + 1) % count],
+                    controlPoints[(index + count + 2) % count],
+                    amount
+                ));
+            }
+        }
+
+        return new Curve3(points);
     }
 
     private getTreePoints(trackPoints: Array<ITrackPoint>, density: number, width: number, offset: number): Array<Vector3> {

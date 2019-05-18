@@ -1,10 +1,9 @@
 import { KartEngine } from "./engine";
 import { Track, ITrackPoint } from './track';
-import { Vector3, Quaternion, FreeCamera, Mesh, CubeMapToSphericalPolynomialTools, StandardMaterial, DirectionalLight, CubeTexture, EnvironmentHelper } from "@babylonjs/core";
+import { Vector3, Quaternion, FreeCamera, Mesh, CubeMapToSphericalPolynomialTools, StandardMaterial, DirectionalLight, CubeTexture, EnvironmentHelper, Color3, Tools } from "@babylonjs/core";
 import { Multiplayer } from "./multiplayer";
 import { Billboard } from "./billboard";
 import { Menu } from './menu';
-import { Skybox } from './skybox';
 
 // Create game engine
 var kartEngine = new KartEngine();
@@ -22,7 +21,13 @@ var main = async () => {
         width: 35,
         height: 5
     });
-    var skybox = new Skybox(kartEngine.scene);
+
+    const environmentTexture = CubeTexture.CreateFromPrefilteredData("public/environment/environment.env", kartEngine.scene);
+    environmentTexture.rotationY = Tools.ToRadians(45);
+    kartEngine.scene.createDefaultSkybox(environmentTexture, true, 1000);
+    kartEngine.scene.environmentTexture.level = 0.5;
+    const light = new DirectionalLight("light", new Vector3(1, -2, 0), kartEngine.scene);
+    light.intensity = 2.0;
 
     const offset = new Vector3(0, 4, 0);
     var camera = new FreeCamera("camera", new Vector3(0, 10, 3), kartEngine.scene);
@@ -34,12 +39,6 @@ var main = async () => {
     var startingRotation = track.startTarget.add(offset);
     var billboard = new Billboard(startingPosition, startingRotation, kartEngine, camera);
     var bb = billboard.getBillBoardMesh();
-
-    kartEngine.scene.environmentTexture = CubeTexture.CreateFromPrefilteredData("public/environment/environment.env", kartEngine.scene);
-    kartEngine.scene.environmentTexture.level = 0.5;
-
-    const light = new DirectionalLight("light", track.trackPoints[0].right.addInPlace(Vector3.Up().scaleInPlace(-1.5)), kartEngine.scene);
-    light.intensity = 2.0;
 
     // Multiplayer
     var multiplayer = new Multiplayer(kartEngine.scene);
