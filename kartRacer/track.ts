@@ -27,6 +27,7 @@ export class Track {
     public readonly trackPoints: ITrackPoint[];
 
     private _varianceSeed: number;
+    private _track: TransformNode;
 
     constructor(scene: Scene, options: { radius: number, numPoints: number, varianceSeed: number, lateralVariance: number, heightVariance: number, width: number, height: number }) {
         this._varianceSeed = options.varianceSeed;
@@ -113,22 +114,24 @@ export class Track {
             };
         }
 
-        const vScale = Math.round(curve.length() / (options.width * 2));
-
-        const track = new TransformNode("track", scene);
-        this.createRoad(scene, this.trackPoints, track, vScale);
-        this.createAprons(scene, this.trackPoints, track, vScale);
-        this.createFlats(scene, this.trackPoints, track, vScale);
-        this.createWalls(scene, this.trackPoints, track, vScale);
-        this.createGoal(scene, this.trackPoints, track);
-        this.createTrees(scene, this.trackPoints, track);
-        this.createHazards(scene, this.trackPoints, track);
+        this._track = new TransformNode("track", scene);
+        this.createRoad(scene, this.trackPoints, Math.round(curve.length() / options.width));
+        this.createAprons(scene, this.trackPoints, Math.round(curve.length() / options.width));
+        this.createFlats(scene, this.trackPoints, Math.round(curve.length() / options.width));
+        this.createWalls(scene, this.trackPoints, Math.round(curve.length() / (wallHeight * 5)));
+        this.createGoal(scene, this.trackPoints);
+        this.createTrees(scene, this.trackPoints);
+        this.createHazards(scene, this.trackPoints);
 
         this.startPoint = getPoint(0);
         this.startTarget = getPoint(1);
     }
 
-    private createRoad(scene: Scene, trackPoints: Array<ITrackPoint>, track: TransformNode, vScale: number): Mesh {
+    public dispose(): void {
+        this._track.dispose(false, true);
+    }
+
+    private createRoad(scene: Scene, trackPoints: Array<ITrackPoint>, vScale: number): Mesh {
         const road = RibbonBuilder.CreateRibbon("road", {
             pathArray: trackPoints.map(p => [p.rightEdge, p.leftEdge]),
             uvs: this.createUVs(trackPoints, [0.15, 0.85]),
@@ -140,29 +143,31 @@ export class Track {
         material.metallicTexture = this.createTexture("public/textures/SimpleTrack_ORM.png", scene, vScale);
 
         road.material = material;
-        road.parent = track;
+        road.parent = this._track;
 
         Tags.AddTagsTo(road, "road");
 
         return road;
     }
 
-    private createAprons(scene: Scene, trackPoints: Array<ITrackPoint>, track: TransformNode, vScale: number): void {
+    private createAprons(scene: Scene, trackPoints: Array<ITrackPoint>, vScale: number): void {
         const aprons = new TransformNode("aprons", scene);
-        aprons.parent = track;
+        aprons.parent = this._track;
 
         const right = RibbonBuilder.CreateRibbon("right", {
             pathArray: trackPoints.map(p => [p.rightApron, p.rightEdge]),
-            uvs: this.createUVs(trackPoints, [0.85, 1]),
+            uvs: this.createUVs(trackPoints, [1/3, 0]),
         }, scene);
 
         const left = RibbonBuilder.CreateRibbon("left", {
             pathArray: trackPoints.map(p => [p.leftEdge, p.leftApron]),
-            uvs: this.createUVs(trackPoints, [0, 0.15]),
+            uvs: this.createUVs(trackPoints, [0, 1/3]),
         }, scene);
 
         const material = this.createMaterial("aprons", scene);
-        material.albedoTexture = this.createTexture("public/textures/SimpleTrack_basecolor.png", scene, vScale);
+        material.albedoTexture = this.createTexture("public/textures/TrackBoundary_basecolor.png", scene, vScale);
+        material.bumpTexture = this.createTexture("public/textures/TrackBoundary_normal.png", scene, vScale);
+        material.metallicTexture = this.createTexture("public/textures/TrackBoundary_ORM.png", scene, vScale);
 
         right.material = material;
         right.parent = aprons;
@@ -173,19 +178,24 @@ export class Track {
         Tags.AddTagsTo(left, "apron");
     }
 
-    private createFlats(scene: Scene, trackPoints: Array<ITrackPoint>, track: TransformNode, vScale: number): void {
+    private createFlats(scene: Scene, trackPoints: Array<ITrackPoint>, vScale: number): void {
         const flats = new TransformNode("flats", scene);
-        flats.parent = track;
+        flats.parent = this._track;
 
         const right = RibbonBuilder.CreateRibbon("right", {
-            pathArray: trackPoints.map(p => [p.rightFlat, p.rightApron])
+            pathArray: trackPoints.map(p => [p.rightFlat, p.rightApron]),
+            uvs: this.createUVs(trackPoints, [1, 1/3]),
         }, scene);
 
         const left = RibbonBuilder.CreateRibbon("left", {
-            pathArray: trackPoints.map(p => [p.leftApron, p.leftFlat])
+            pathArray: trackPoints.map(p => [p.leftApron, p.leftFlat]),
+            uvs: this.createUVs(trackPoints, [1/3, 1]),
         }, scene);
 
         const material = this.createMaterial("flats", scene);
+        material.albedoTexture = this.createTexture("public/textures/TrackBoundary_basecolor.png", scene, vScale);
+        material.bumpTexture = this.createTexture("public/textures/TrackBoundary_normal.png", scene, vScale);
+        material.metallicTexture = this.createTexture("public/textures/TrackBoundary_ORM.png", scene, vScale);
 
         right.material = material;
         right.parent = flats;
@@ -196,19 +206,24 @@ export class Track {
         Tags.AddTagsTo(left, "flat");
     }
 
-    private createWalls(scene: Scene, trackPoints: Array<ITrackPoint>, track: TransformNode, vScale: number): void {
+    private createWalls(scene: Scene, trackPoints: Array<ITrackPoint>, vScale: number): void {
         const walls = new TransformNode("walls", scene);
-        walls.parent = track;
+        walls.parent = this._track;
 
         const right = RibbonBuilder.CreateRibbon("rightWall", {
-            pathArray: trackPoints.map(p => [p.rightWallOutside, p.rightWallInside, p.rightFlat])
+            pathArray: trackPoints.map(p => [p.rightWallOutside, p.rightWallInside, p.rightFlat]),
+            uvs: this.createUVs(trackPoints, [1, 0.8, 0]),
         }, scene);
 
         const left = RibbonBuilder.CreateRibbon("leftWall", {
-            pathArray: trackPoints.map(p => [p.leftFlat, p.leftWallInside, p.leftWallOutside])
+            pathArray: trackPoints.map(p => [p.leftFlat, p.leftWallInside, p.leftWallOutside]),
+            uvs: this.createUVs(trackPoints, [0, 0.8, 1]),
         }, scene);
 
         const material = this.createMaterial("wall", scene);
+        material.albedoTexture = this.createTexture("public/textures/StylizedWall_basecolor.png", scene, vScale);
+        material.bumpTexture = this.createTexture("public/textures/StylizedWall_normal.png", scene, vScale);
+        material.metallicTexture = this.createTexture("public/textures/StylizedWall_ORM.png", scene, vScale);
 
         right.material = material;
         right.parent = walls;
@@ -219,7 +234,7 @@ export class Track {
         Tags.AddTagsTo(left, "wall");
     }
 
-    private createGoal(scene: Scene, trackPoints: Array<ITrackPoint>, track: TransformNode): void {
+    private createGoal(scene: Scene, trackPoints: Array<ITrackPoint>): void {
         const percent = 0.015;
         const limit = Math.round(trackPoints.length * percent);
 
@@ -238,7 +253,7 @@ export class Track {
         material.albedoTexture = albedoTexture;
 
         goal.material = material;
-        goal.parent = track;
+        goal.parent = this._track;
     }
 
     private createUVs(trackPoints: Array<ITrackPoint>, us: Array<number>): Array<Vector2> {
@@ -265,9 +280,9 @@ export class Track {
         return uvs;
     }
 
-    private createTrees(scene: Scene, trackPoints: Array<ITrackPoint>, track: TransformNode): void {
+    private createTrees(scene: Scene, trackPoints: Array<ITrackPoint>): void {
         const trees = new TransformNode("trees", scene);
-        trees.parent = track;
+        trees.parent = this._track;
         const treePoints = this.getTreePoints(trackPoints, 0.9, 10.0, 7.0);
         for (const treePoint of treePoints) {
             const tree = KartEngine.instance.assets.tree.createInstance("tree");
@@ -277,9 +292,9 @@ export class Track {
         }
     }
 
-    private createHazards(scene: Scene, trackPoints: Array<ITrackPoint>, track: TransformNode): void {
+    private createHazards(scene: Scene, trackPoints: Array<ITrackPoint>): void {
         const hazards = new TransformNode("hazards", scene);
-        hazards.parent = track;
+        hazards.parent = this._track;
         const bombHazards = new TransformNode("bombs", scene);
         bombHazards.parent = hazards;
         const boostHazards = new TransformNode("boosts", scene);
@@ -398,7 +413,7 @@ export class Track {
 
     private createMaterial(name: string, scene: Scene): PBRMaterial {
         const material = new PBRMaterial(name, scene);
-        material.metallic = 0;
+        material.metallic = 1;
         material.roughness = 1;
         material.backFaceCulling = false;
         material.twoSidedLighting = true;

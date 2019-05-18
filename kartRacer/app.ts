@@ -1,6 +1,6 @@
 import { KartEngine } from "./engine";
 import { Track, ITrackPoint } from './track';
-import { Vector3, Quaternion, FreeCamera, Mesh, CubeMapToSphericalPolynomialTools, StandardMaterial } from "@babylonjs/core";
+import { Vector3, Quaternion, FreeCamera, Mesh, CubeMapToSphericalPolynomialTools, StandardMaterial, DirectionalLight, CubeTexture, EnvironmentHelper } from "@babylonjs/core";
 import { Multiplayer } from "./multiplayer";
 import { Billboard } from "./billboard";
 import { Menu } from './menu';
@@ -29,13 +29,17 @@ var main = async () => {
     camera.rotationQuaternion = new Quaternion();
     kartEngine.scene.activeCamera = camera;
 
-    kartEngine.scene.createDefaultLight(true);
-
     // Set Starting Position and Move to Track
     var startingPosition = track.startPoint.add(offset);
     var startingRotation = track.startTarget.add(offset);
     var billboard = new Billboard(startingPosition, startingRotation, kartEngine, camera);
     var bb = billboard.getBillBoardMesh();
+
+    kartEngine.scene.environmentTexture = CubeTexture.CreateFromPrefilteredData("public/environment/environment.env", kartEngine.scene);
+    kartEngine.scene.environmentTexture.level = 0.5;
+
+    const light = new DirectionalLight("light", track.trackPoints[0].right.addInPlace(Vector3.Up().scaleInPlace(-1.5)), kartEngine.scene);
+    light.intensity = 2.0;
 
     // Multiplayer
     var multiplayer = new Multiplayer(kartEngine.scene);

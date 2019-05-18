@@ -218,7 +218,7 @@ export class Kart extends TransformNode {
         [this.forward, this.right, this.forward.scale(-1.0), this.right.scale(-1.0)].forEach((direction) => {
             ray.direction = direction;
             ray.length = 2.0;
-            hit = KartEngine.instance.scene.pickWithRay(ray);
+            hit = KartEngine.instance.scene.pickWithRay(ray, mesh => Tags.GetTags(mesh) === "wall");
             if (hit.hit) {
                 var normal = hit.getNormal(true, true);
                 var velocityNormalDot = Vector3.Dot(this._velocity, normal);
