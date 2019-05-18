@@ -1,20 +1,20 @@
 import { FreeCamera, Scene, Mesh, StandardMaterial } from "@babylonjs/core";
 import { AdvancedDynamicTexture, TextBlock, StackPanel } from "@babylonjs/gui";
+import { Assets } from "./assets";
 
 export class Menu {
-    private _camera : FreeCamera;
-    private _UI : Mesh;
-    private _timeText : TextBlock = null;
-    private _scoreText : TextBlock = null;
-    private _winText : TextBlock = null;
-    private _startTime : number = null;
-    private _stopTimer : boolean = false;
-    private _time : number;
+    private _camera: FreeCamera;
+    private _UI: Mesh;
+    private _timeText: TextBlock = null;
+    private _scoreText: TextBlock = null;
+    private _winText: TextBlock = null;
+    private _startTime: number = null;
+    private _stopTimer: boolean = false;
+    private _time: number;
 
-    constructor (camera : FreeCamera, scene : Scene)
-    {
-        var hudPlane = Mesh.CreatePlane("hudPlane", 4.5, scene)
-        hudPlane.material = new StandardMaterial("", scene)
+    constructor(camera: FreeCamera, scene: Scene, assets: Assets) {
+        var hudPlane = Mesh.CreatePlane("hudPlane", 4.5, scene);
+        hudPlane.material = assets.unlitMaterial;
 
         var driverUI = AdvancedDynamicTexture.CreateForMesh(hudPlane);
 
@@ -53,7 +53,7 @@ export class Menu {
         winText.text = "";
         winText.outlineColor = "black"
         winText.outlineWidth = 8;
-        
+
         stackPanel.addControl(timeText);
         stackPanel.addControl(scoreText);
         stackPanel.addControl(winText);
@@ -65,56 +65,48 @@ export class Menu {
         this._camera = camera;
     }
 
-    public SetVisible(isEnabled : boolean) : void
-    {
+    public SetVisible(isEnabled: boolean): void {
         this._UI.isVisible = isEnabled;
     }
 
-    public UpdateHUD(prog : number) : void
-    {
-        if (this._startTime != null && !this._stopTimer)
-        {
+    public UpdateHUD(prog: number): void {
+        if (this._startTime != null && !this._stopTimer) {
             let time = Math.floor((new Date().getTime() - this._startTime) / 1000);
 
             this._time = time;
             this._timeText.text = this.FormatTime(time);
         }
-        
+
         this._scoreText.text = prog + "% Complete";
     }
 
-    public EnableHud() : void
-    {
+    public EnableHud(): void {
         this._UI.position.set(0, 0, 5);
         this._UI.parent = this._camera;
     }
 
-    public StartTimer() : void
-    {
+    public StartTimer(): void {
         this._startTime = new Date().getTime();
         this._stopTimer = false;
     }
-    public StopTimer() : string
-    {
+    public StopTimer(): string {
         this._stopTimer = true;
-        
+
         return this.FormatTime(this._time);
     }
 
-    public SetWinText(text : string)
-    {
+    public SetWinText(text: string) {
         this._winText.text = text;
     }
 
-    private FormatTime(time : number) : string
-    {
+    private FormatTime(time: number): string {
         let hours = Math.floor(time / 3600);
         time %= 3600;
         let minutes = Math.floor(time / 60);
         let seconds = time % 60;
-        var hoursString : string = (hours < 10 ? "0" : "") + hours;
-        var minutesString : string = (minutes < 10 ? "0" : "") + minutes;
-        var secondsString : string = (seconds < 10 ? "0" : "") + seconds;
+        var hoursString: string = (hours < 10 ? "0" : "") + hours;
+        var minutesString: string = (minutes < 10 ? "0" : "") + minutes;
+        var secondsString: string = (seconds < 10 ? "0" : "") + seconds;
 
         return (hoursString + ":" + minutesString + ":" + secondsString);
     }

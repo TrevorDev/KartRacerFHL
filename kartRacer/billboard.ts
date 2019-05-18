@@ -1,32 +1,36 @@
-import { KartEngine } from "./engine";
-import { Animation, FreeCamera, Mesh, Vector3, StandardMaterial, BezierCurveEase, Texture, Observable } from "@babylonjs/core";
+import { Mesh, Texture, Observable, Scene, FreeCamera, Vector3, PBRMaterial } from "@babylonjs/core";
 import { AdvancedDynamicTexture, StackPanel, Button, InputText } from "@babylonjs/gui";
+import { Assets } from "./assets";
 
 export class Billboard {
-    private _root: Mesh;
     private _racerName: InputText;
-    public onGameStartObservable = new Observable();
 
-    constructor(startPos: Vector3, startRotate: Vector3, kartEngine: KartEngine, camera: FreeCamera) {
-        var root = new Mesh("billboard", kartEngine.scene)
+    public readonly onGameStartObservable = new Observable<void>();
 
-        var guiPlane = Mesh.CreatePlane("guiPlane", 6, kartEngine.scene);
-        guiPlane.position.set(0, 10, 10-0.2);
-        guiPlane.material = new StandardMaterial("GUI", kartEngine.scene);
+    constructor(scene: Scene, assets: Assets) {
+        const root = new Mesh("billboard", scene)
 
-        var imagePlane = Mesh.CreatePlane("imagePlane", 5, kartEngine.scene);
-        imagePlane.scaling.x = 1.8	
-        imagePlane.position.set(0, 10, 10-0.1);	
-        imagePlane.material = new StandardMaterial("", kartEngine.scene);	
-        (imagePlane.material as any).diffuseTexture = (imagePlane.material as any).emissiveTexture = new Texture("/public/textures/logo.png", kartEngine.scene);
+        const backgroundPlane = Mesh.CreatePlane("backgroundPlane", 5, scene);
+        backgroundPlane.scaling.x = 1.8
+        backgroundPlane.position.set(0, 10, 10 - 0.1);
+        const backgroundMaterial = assets.unlitMaterial.clone("backgroundPlane");
+        backgroundMaterial.unlit = true;
+        backgroundMaterial.albedoTexture = new Texture("/public/textures/logo.png", scene);
+        backgroundPlane.material = backgroundMaterial;
+        backgroundPlane.parent = root;
 
-        var mainMenuGUI = AdvancedDynamicTexture.CreateForMesh(guiPlane);
+        const guiPlane = Mesh.CreatePlane("guiPlane", 6, scene);
+        guiPlane.position.set(0, 10, 10 - 0.2);
+        guiPlane.material = assets.unlitMaterial;
+        guiPlane.parent = root;
 
-        var stackPanel = new StackPanel();
+        const mainMenuGUI = AdvancedDynamicTexture.CreateForMesh(guiPlane);
+
+        const stackPanel = new StackPanel();
         stackPanel.top = "200px";
         mainMenuGUI.addControl(stackPanel);
 
-        var racerName = new InputText("rName");
+        const racerName = new InputText("racerName");
         racerName.width = 1;
         racerName.height = "100px";
         racerName.placeholderText = "Enter racer name...";
@@ -36,74 +40,52 @@ export class Billboard {
         racerName.focusedBackground = "white";
         stackPanel.addControl(racerName);
 
-        var button1 = Button.CreateSimpleButton("but1", "Start Game");
-        button1.width = 1;
-        button1.height = "100px";
-        button1.color = "white";
-        button1.fontSize = 50;
-        button1.background = "green"
-        stackPanel.addControl(button1);
+        const startButton = Button.CreateSimpleButton("start", "Start Game");
+        startButton.width = 1;
+        startButton.height = "100px";
+        startButton.color = "white";
+        startButton.fontSize = 50;
+        startButton.background = "green"
+        stackPanel.addControl(startButton);
 
-        var billBoardBase = Mesh.CreateBox("base", 1, kartEngine.scene)
+        const billBoardBase = Mesh.CreateBox("base", 1, scene)
         billBoardBase.scaling.y = 10;
-        billBoardBase.position.set(0, 5, 10.51)
+        billBoardBase.position.set(0, 5, 10.51);
+        billBoardBase.setParent(root);
 
-        var billBoardPanel = Mesh.CreateBox("billboardPanel", 1, kartEngine.scene)
+        const billBoardPanel = Mesh.CreateBox("billboard", 1, scene)
         billBoardPanel.scaling.x = 12;
         billBoardPanel.scaling.y = 6;
-        billBoardPanel.position.set(0, 10, 10.51)
+        billBoardPanel.position.set(0, 10, 10.51);
+        billBoardPanel.setParent(root);
 
-        button1.onPointerUpObservable.add(() => {
-            var startRot = camera.rotationQuaternion.clone();
-            var oldPos = camera.position.clone()
-            camera.position.copyFrom(startPos)
-            camera.setTarget(startRotate)
-            camera.computeWorldMatrix()
-            var targetRot = camera.rotationQuaternion.clone()
-            camera.position.copyFrom(oldPos)
-            camera.rotationQuaternion.copyFrom(startRot)
-            camera.computeWorldMatrix()
-
-            var bezierEase = new BezierCurveEase(0.5, 0, 0.5, 1);
-            Animation.CreateAndStartAnimation("moveCamera",
-                camera, "position", 60, 120, camera.position, startPos, Animation.ANIMATIONLOOPMODE_CONSTANT, bezierEase);
-
-            var a = Animation.CreateAndStartAnimation("rotateCamera",
-                camera, "rotationQuaternion", 60, 120, camera.rotationQuaternion, targetRot, Animation.ANIMATIONLOOPMODE_CONSTANT, bezierEase);
-            a.onAnimationEndObservable.add(()=>{
-                this.onGameStartObservable.notifyObservers({});
-            })
+        startButton.onPointerUpObservable.add(() => {
+            this.onGameStartObservable.notifyObservers();
         });
 
-        // Set elements as children of root
-        guiPlane.setParent(root);
-        billBoardBase.setParent(root);
-        billBoardPanel.setParent(root);
+        const camera = new FreeCamera("camera", new Vector3(0, 10, 3), scene);
+        camera.parent = root;
+
+        scene.activeCamera = camera;
 
         // Get racer name from local storage if available
         if (typeof localStorage === "object") {
-             const value = localStorage.getItem("KartRacer.PlayerName");
-             if (value) {
-                 racerName.text = value;
-             }
+            const value = localStorage.getItem("KartRacer.PlayerName");
+            if (value) {
+                racerName.text = value;
+            }
         }
 
         this._racerName = racerName;
-        this._root = root
     }
 
-    public getBillBoardMesh(): Mesh {
-        return this._root;
-    }
-
-    public getRacerName(): string
-    {
-        if (this._racerName.text.length == 0)
-        {
+    public get racerName(): string {
+        const racerName = this._racerName.text.trim();
+        if (!racerName) {
             let num = Math.floor(Math.random() * 10000);
             this._racerName.text = ("kart_" + num);
         }
- 
-        return this._racerName.text;
+
+        return racerName;
     }
 }

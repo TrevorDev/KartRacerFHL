@@ -1,10 +1,12 @@
-import { IKartInput } from "./input";
-import { KartEngine } from "./engine";
-import { Engine, Mesh, Scene, Vector3, Ray, Quaternion, FreeCamera, TransformNode, StandardMaterial, Scalar, AbstractMesh, AnimationGroup, ParticleSystem, MeshBuilder, Texture, Color4, Tools, Tags, PickingInfo } from "@babylonjs/core";
+import { Engine, Mesh, Scene, Vector3, Ray, Quaternion, FreeCamera, TransformNode, StandardMaterial, Scalar, AbstractMesh, AnimationGroup, ParticleSystem, MeshBuilder, Texture, Color4, Tags, PickingInfo, Sound, PBRMaterial } from "@babylonjs/core";
 import { AdvancedDynamicTexture, StackPanel, TextBlock } from "@babylonjs/gui";
+import { IKartInput } from "./input";
 import { Menu } from "./menu";
+import { Assets } from "./assets";
 
 export class Kart extends TransformNode {
+    private _engineSound: Sound;
+    private _unlitMaterial: PBRMaterial;
     private _mesh: AbstractMesh;
     private _animationGroups?: { wheelsRotation: AnimationGroup, steering: AnimationGroup };
     private _camera: FreeCamera;
@@ -19,7 +21,6 @@ export class Kart extends TransformNode {
 
     private static readonly UP_GROUNDED_FILTER_STRENGTH: number = 7.0;
     private static readonly UP_FALLING_FILTER_STRENGTH: number = 1.0;
-    private static readonly MAX_FALL_TIME_SECONDS: number = 2.0;
     private static readonly TURN_FILTER_STRENGTH: number = 0.1;
     private static readonly MAX_TURN_SCALAR: number = Math.PI * 2 / 3;
     private static readonly FORWARD_VELOCITY_SCALAR: number = 1.2;
@@ -48,7 +49,6 @@ export class Kart extends TransformNode {
     private _velocity: Vector3 = Vector3.Zero();
     private _relocity: number = 0.0;
     private _filteredUp: Vector3 = Vector3.Up();
-    private _fallTime: number = 0.0;
     private _deltaTime: number = 0.0;
     private _lastSafePosition: Vector3 = Vector3.Zero();
     private _lastSafeFilteredUp: Vector3 = Vector3.Zero();
@@ -72,12 +72,15 @@ export class Kart extends TransformNode {
     public TrackTime: string = "";
     public PlayerMenu: Menu;
 
-    constructor(kartName: string, scene: Scene, locallyOwned: boolean = true) {
+    constructor(kartName: string, scene: Scene, assets: Assets, main = false, input?: IKartInput) {
         super(kartName, scene);
 
-        if (locallyOwned) {
-            this._input = KartEngine.instance.inputSource;
-            const mainKartInfo = KartEngine.instance.assets.mainKartInfo;
+        this._engineSound = assets.engineSound;
+        this._unlitMaterial = assets.unlitMaterial;
+
+        if (main) {
+            this._input = input;
+            const mainKartInfo = assets.mainKartInfo;
             this._animationGroups = mainKartInfo.animationGroups;
             // this._animationGroups.wheelsRotation.play(true);
             // this._animationGroups.wheelsRotation.speedRatio = 0;
@@ -88,7 +91,7 @@ export class Kart extends TransformNode {
             this._mesh.parent = this;
         }
         else {
-            this._mesh = KartEngine.instance.assets.kart.createInstance("model");
+            this._mesh = assets.kart.createInstance("model");
             this._mesh.scaling.scaleInPlace(0.05);
             this._mesh.isPickable = false;
             this._mesh.parent = this;
@@ -107,32 +110,6 @@ export class Kart extends TransformNode {
         return this._camera;
     }
 
-    public assignKartName(name: string): void {
-        var namePlane = Mesh.CreatePlane("namePlane", 3.5, this._scene);
-        namePlane.material = new StandardMaterial("", this._scene)
-        namePlane.isPickable = false;
-
-        var nameMesh = AdvancedDynamicTexture.CreateForMesh(namePlane);
-        var stackPanel = new StackPanel();
-        stackPanel.height = "100%";
-        nameMesh.addControl(stackPanel);
-
-        var nameText = new TextBlock();
-        nameText.height = "100%";
-        nameText.textVerticalAlignment = TextBlock.VERTICAL_ALIGNMENT_TOP;
-        nameText.fontSize = 96;
-        nameText.color = "white"
-        nameText.text = name;
-        nameText.textWrapping = true;
-        nameText.outlineColor = "black";
-        nameText.outlineWidth = 3;
-        stackPanel.addControl(nameText);
-        namePlane.position.set(0, 1, 0);
-        namePlane.parent = this;
-
-        this._kartName = name;
-    }
-
     public initializeTrackProgress(checkpoints: Vector3[], startingPosition: Vector3, startingLookAt: Vector3): void {
         this._initialPosition = startingPosition;
         this._initialLookAt = startingLookAt;
@@ -145,17 +122,42 @@ export class Kart extends TransformNode {
         this._totalCheckpoints = checkpoints.length;
     }
 
-    public getTrackComplete(): number {
+    public get trackProgress(): number {
         return Math.round(this._hits / this._totalCheckpoints * 100);
     }
 
-    public getKartName(): string {
+    public set kartName(value: string) {
+        var namePlane = Mesh.CreatePlane("namePlane", 3.5, this._scene);
+        namePlane.material = this._unlitMaterial;
+
+        var nameMesh = AdvancedDynamicTexture.CreateForMesh(namePlane);
+        var stackPanel = new StackPanel();
+        stackPanel.height = "100%";
+        nameMesh.addControl(stackPanel);
+
+        var nameText = new TextBlock();
+        nameText.height = "100%";
+        nameText.textVerticalAlignment = TextBlock.VERTICAL_ALIGNMENT_TOP;
+        nameText.fontSize = 96;
+        nameText.color = "white"
+        nameText.text = value;
+        nameText.textWrapping = true;
+        nameText.outlineColor = "black";
+        nameText.outlineWidth = 3;
+        stackPanel.addControl(nameText);
+        namePlane.position.set(0, 1, 0);
+        namePlane.parent = this;
+
+        this._kartName = value;
+    }
+
+    public get kartName(): string {
         return this._kartName;
     }
 
     private updateFromTrackPhysics(): void {
         var ray = new Ray(this.position, this.up.scale(-1.0), 0.7);
-        var hit = KartEngine.instance.scene.pickWithRay(ray, mesh => Tags.HasTags(mesh));
+        var hit = this.getScene().pickWithRay(ray, mesh => Tags.HasTags(mesh));
         if (hit.hit) {
             // MAGIC: There is a bug in the picking code where the barycentric coordinates
             // returned for bu and bv are actually bv and bw.  This causes the normals to be
@@ -178,7 +180,6 @@ export class Kart extends TransformNode {
 
             this._velocity.subtractInPlace(normal.scale(Vector3.Dot(this._velocity, normal)));
 
-            this._fallTime = 0.0;
             this._lastSafePosition.copyFrom(this.position);
             this._lastSafeFilteredUp.copyFrom(this._filteredUp);
 
@@ -195,13 +196,13 @@ export class Kart extends TransformNode {
 
             this._velocity.addInPlace(Vector3.Down().scale(this._deltaTime));
 
-            this._fallTime += this._deltaTime;
-            if (this._fallTime > Kart.MAX_FALL_TIME_SECONDS) {
-                this.position.copyFrom(this._lastSafePosition);
-                this._filteredUp.copyFrom(this._lastSafeFilteredUp);
-                this._velocity.set(0.0, 0.0, 0.0);
-                this._relocity = 0.0;
-            }
+            // TODO
+            // if (this.position.y < this._minPosition) {
+            //     this.position.copyFrom(this._lastSafePosition);
+            //     this._filteredUp.copyFrom(this._lastSafeFilteredUp);
+            //     this._velocity.set(0.0, 0.0, 0.0);
+            //     this._relocity = 0.0;
+            // }
         }
 
         var forward = Vector3.Cross(this.right, this._filteredUp);
@@ -218,7 +219,7 @@ export class Kart extends TransformNode {
         [this.forward, this.right, this.forward.scale(-1.0), this.right.scale(-1.0)].forEach((direction) => {
             ray.direction = direction;
             ray.length = 2.0;
-            hit = KartEngine.instance.scene.pickWithRay(ray, mesh => Tags.GetTags(mesh) === "wall");
+            hit = this.getScene().pickWithRay(ray, mesh => Tags.GetTags(mesh) === "wall");
             if (hit.hit) {
                 var normal = hit.getNormal(true, true);
                 var velocityNormalDot = Vector3.Dot(this._velocity, normal);
@@ -238,7 +239,7 @@ export class Kart extends TransformNode {
     private checkHazardCollision(name: string): number {
         const radiusCollision = 2;
 
-        const hazards = (KartEngine.instance.scene as any).getTransformNodeByName(name);
+        const hazards = this.getScene().getTransformNodeByName(name);
 
         if (hazards == null) {
             return -1;
@@ -258,20 +259,14 @@ export class Kart extends TransformNode {
     }
 
     private disappearHazard(name: string, index: number) {
-        const hazards = (KartEngine.instance.scene as any).getTransformNodeByName(name);
+        const hazards = this.getScene().getTransformNodeByName(name);
         const hazardMeshes = hazards.getChildMeshes();
-        const mesh = hazardMeshes[index];
         hazardMeshes[index].isVisible = false;
     }
 
-    private resetHazard(name: string, index: number) {
-        const hazards = (KartEngine.instance.scene as any).getTransformNodeByName(name);
-        const hazardMeshes = hazards.getChildMeshes();
-        hazardMeshes[index].isVisible = true;
-    }
 
     private resetAllHazardsOfAType(name: string) {
-        const hazards = (KartEngine.instance.scene as any).getTransformNodeByName(name);
+        const hazards = this.getScene().getTransformNodeByName(name);
         const hazardMeshes = hazards.getChildMeshes();
         for (var index = 0; index < hazardMeshes.length; ++index) {
             hazardMeshes[index].isVisible = true;
@@ -313,7 +308,7 @@ export class Kart extends TransformNode {
 
         collisionId = this.checkHazardCollision("bumpers");
         if (collisionId != -1) {
-            const hazards = (KartEngine.instance.scene as any).getTransformNodeByName("bumpers");
+            const hazards = this.getScene().getTransformNodeByName("bumpers");
             const bumpers = hazards.getChildMeshes();
             const bumper = bumpers[collisionId];
             const bumperPosition = bumper.position;
@@ -385,7 +380,7 @@ export class Kart extends TransformNode {
 
         this.rotateAround(this.position, this.up, this._relocity);
 
-        KartEngine.instance.assets.engineSound.setVolume(Scalar.Lerp(KartEngine.instance.assets.engineSound.getVolume(), this.getForward(), 0.1))
+        this._engineSound.setVolume(Scalar.Lerp(this._engineSound.getVolume(), this.getForward(), 0.1))
         this._velocity.addInPlace(this.forward.scale(this.getForward() * Kart.FORWARD_VELOCITY_SCALAR * this._currentVelocityFactor * this._deltaTime));
         this.setCurrentVelocityFactor(false);
 
@@ -471,7 +466,7 @@ export class Kart extends TransformNode {
         this._particlesSphere = MeshBuilder.CreateSphere("sphere", { diameter: scaling.x * 2, segments: 8 }, scene);
         this._particlesSphere.position = this.position
         this._particlesSphere.parent = this;
-        this._particlesSphere.material = new StandardMaterial("mat", scene);
+        this._particlesSphere.material = new StandardMaterial("particlesSphere", scene);
         this._particlesSphere.visibility = 0;
         this._particlesSphere.isPickable = false;
 
@@ -498,7 +493,7 @@ export class Kart extends TransformNode {
         cone.position = this.position.subtract(new Vector3(0, 0, 1.5));
         // cone.rotate(new Vector3(1,0,0), -Math.PI/2.0);
         cone.parent = this;
-        cone.material = new StandardMaterial("mat", scene);
+        cone.material = new StandardMaterial("particlesCone", scene);
         cone.visibility = 0;
         cone.isPickable = false;
 

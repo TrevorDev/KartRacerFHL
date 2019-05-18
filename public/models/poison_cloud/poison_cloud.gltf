@@ -1,0 +1,185 @@
+{
+  "asset": {
+    "version": "2.0",
+    "generator": "Microsoft GLTF Exporter 2.4.2.8"
+  },
+  "accessors": [
+    {
+      "bufferView": 0,
+      "componentType": 5123,
+      "count": 56634,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5126,
+      "count": 9449,
+      "type": "VEC3",
+      "max": [
+        0.49936172366142273,
+        0.49875041842460632,
+        0.27806130051612854
+      ],
+      "min": [
+        -0.49957042932510376,
+        -0.49811425805091858,
+        -0.27806130051612854
+      ]
+    },
+    {
+      "bufferView": 2,
+      "componentType": 5126,
+      "count": 9449,
+      "type": "VEC3"
+    }
+  ],
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteOffset": 0,
+      "byteLength": 113268,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 113268,
+      "byteLength": 113388,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 226656,
+      "byteLength": 113388,
+      "target": 34962
+    }
+  ],
+  "buffers": [
+    {
+      "byteLength": 340044,
+      "uri": "poison_cloud.bin"
+    }
+  ],
+  "images": [
+    {
+      "uri": "poison_cloud_image0.png"
+    },
+    {
+      "uri": "poison_cloud_image1.png"
+    },
+    {
+      "uri": "poison_cloud_image2.png"
+    },
+    {
+      "uri": "poison_cloud_image3.png"
+    }
+  ],
+  "materials": [
+    {
+      "pbrMetallicRoughness": {
+        "baseColorTexture": {
+          "index": 2
+        },
+        "metallicRoughnessTexture": {
+          "index": 3
+        }
+      },
+      "alphaMode": "MASK",
+      "name": "47",
+      "doubleSided": true,
+      "extensions": {
+        "KHR_materials_pbrSpecularGlossiness": {
+          "diffuseTexture": {
+            "index": 0
+          },
+          "specularGlossinessTexture": {
+            "index": 1
+          }
+        }
+      },
+      "extras": {
+        "MSFT_sRGBFactors": false
+      }
+    }
+  ],
+  "meshes": [
+    {
+      "name": "mesh_id31",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 1,
+            "NORMAL": 2
+          },
+          "indices": 0,
+          "material": 0
+        }
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "children": [
+        1
+      ],
+      "name": "root"
+    },
+    {
+      "translation": [
+        5.5532695114379749E-05,
+        -8.8432316260878E-05,
+        0.25601547956466675
+      ],
+      "rotation": [
+        -0.02848103828728199,
+        -0.09679432213306427,
+        0.039603069424629211,
+        0.99410831928253174
+      ],
+      "scale": [
+        0.47726601362228394,
+        0.29263660311698914,
+        0.22452417016029358
+      ],
+      "mesh": 0,
+      "name": "node_id30"
+    }
+  ],
+  "samplers": [
+    {
+      "minFilter": 9985
+    }
+  ],
+  "scenes": [
+    {
+      "nodes": [
+        0
+      ]
+    }
+  ],
+  "scene": 0,
+  "textures": [
+    {
+      "name": "texture156",
+      "sampler": 0,
+      "source": 0
+    },
+    {
+      "name": "texture157",
+      "sampler": 0,
+      "source": 1
+    },
+    {
+      "name": "47_bc",
+      "sampler": 0,
+      "source": 2
+    },
+    {
+      "name": "47_mr",
+      "sampler": 0,
+      "source": 3
+    }
+  ],
+  "extensionsUsed": [
+    "KHR_materials_pbrSpecularGlossiness"
+  ]
+}

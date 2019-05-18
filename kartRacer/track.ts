@@ -1,5 +1,5 @@
 import { Vector3, Curve3, RibbonBuilder, PBRMaterial, Texture, Tools, Scene, TransformNode, Mesh, InstancedMesh, Scalar, Engine, Vector2, Nullable, Tags } from "@babylonjs/core";
-import { KartEngine } from "./engine";
+import { Assets } from "./assets";
 
 export interface ITrackPoint {
     point: Vector3;
@@ -28,7 +28,7 @@ export class Track {
     private _varianceSeed: number;
     private _track: TransformNode;
 
-    constructor(scene: Scene, options: { radius: number, numPoints: number, varianceSeed: number, lateralVariance: number, heightVariance: number, width: number, height: number }) {
+    constructor(scene: Scene, assets: Assets, options: { radius: number, numPoints: number, varianceSeed: number, lateralVariance: number, heightVariance: number, width: number, height: number }) {
         this._varianceSeed = options.varianceSeed;
 
         const controlPoints = this.getControlPoints(
@@ -111,6 +111,7 @@ export class Track {
             };
         }
 
+        // Finish loop
         this.trackPoints.push(this.trackPoints[0]);
 
         this._track = new TransformNode("track", scene);
@@ -119,8 +120,11 @@ export class Track {
         this.createFlats(scene, this.trackPoints, Math.round(curveLength / options.width));
         this.createWalls(scene, this.trackPoints, Math.round(curveLength / (wallHeight * 5)));
         this.createGoal(scene, this.trackPoints);
-        this.createTrees(scene, this.trackPoints);
-        this.createHazards(scene, this.trackPoints);
+        this.createTrees(scene, assets, this.trackPoints);
+        this.createHazards(scene, assets, this.trackPoints);
+
+        // Remove extra loop point.
+        this.trackPoints.length--;
 
         this.startPoint = getPoint(0);
         this.startTarget = getPoint(1);
@@ -272,19 +276,19 @@ export class Track {
         return uvs;
     }
 
-    private createTrees(scene: Scene, trackPoints: Array<ITrackPoint>): void {
+    private createTrees(scene: Scene, assets: Assets, trackPoints: Array<ITrackPoint>): void {
         const trees = new TransformNode("trees", scene);
         trees.parent = this._track;
         const treePoints = this.getTreePoints(trackPoints, 0.9, 10.0, 7.0);
         for (const treePoint of treePoints) {
-            const tree = KartEngine.instance.assets.tree.createInstance("tree");
+            const tree = assets.tree.createInstance("tree");
             tree.isPickable = false;
             tree.position.copyFrom(treePoint);
             tree.parent = trees;
         }
     }
 
-    private createHazards(scene: Scene, trackPoints: Array<ITrackPoint>): void {
+    private createHazards(scene: Scene, assets: Assets, trackPoints: Array<ITrackPoint>): void {
         const hazards = new TransformNode("hazards", scene);
         hazards.parent = this._track;
         const bombHazards = new TransformNode("bombs", scene);
@@ -312,16 +316,16 @@ export class Track {
             const hazardType = this.random();
             const rotationY = this.random();
             if (hazardType < 0.2) {
-                createHazard("bomb", KartEngine.instance.assets.bomb, hazardPoint, rotationY, bombHazards, 1);
+                createHazard("bomb", assets.bomb, hazardPoint, rotationY, bombHazards, 1);
             }
             else if (hazardType < 0.6) {
-                createHazard("boost", KartEngine.instance.assets.boost, hazardPoint, rotationY, boostHazards, 8);
+                createHazard("boost", assets.boost, hazardPoint, rotationY, boostHazards, 8);
             }
             else if (hazardType < 0.8) {
-                createHazard("bumper", KartEngine.instance.assets.bumper, hazardPoint, rotationY, bumperHazards, 4);
+                createHazard("bumper", assets.bumper, hazardPoint, rotationY, bumperHazards, 4);
             }
             else {
-                createHazard("poison", KartEngine.instance.assets.poison, hazardPoint, rotationY, poisonHazards, 4);
+                createHazard("poison", assets.poison, hazardPoint, rotationY, poisonHazards, 4);
             }
         }
 

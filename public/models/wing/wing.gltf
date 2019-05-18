@@ -1,0 +1,192 @@
+{
+  "asset": {
+    "version": "2.0",
+    "generator": "Microsoft GLTF Exporter 2.4.2.8"
+  },
+  "accessors": [
+    {
+      "bufferView": 0,
+      "componentType": 5123,
+      "count": 112824,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5126,
+      "count": 22657,
+      "type": "VEC3",
+      "max": [
+        3.794055700302124,
+        5.2351713180541992,
+        0.47087574005126953
+      ],
+      "min": [
+        -3.7938323020935059,
+        0.0,
+        -0.46757358312606812
+      ]
+    },
+    {
+      "bufferView": 2,
+      "componentType": 5126,
+      "count": 22657,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 3,
+      "componentType": 5126,
+      "count": 22657,
+      "type": "VEC2"
+    }
+  ],
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteOffset": 0,
+      "byteLength": 225648,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 225648,
+      "byteLength": 271884,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 497532,
+      "byteLength": 271884,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 769416,
+      "byteLength": 181256,
+      "target": 34962
+    }
+  ],
+  "buffers": [
+    {
+      "byteLength": 950672,
+      "uri": "wing.bin"
+    }
+  ],
+  "images": [
+    {
+      "uri": "wing_image0.png"
+    },
+    {
+      "uri": "wing_image1.png"
+    },
+    {
+      "uri": "wing_image2.png"
+    },
+    {
+      "uri": "wing_image3.png"
+    }
+  ],
+  "materials": [
+    {
+      "pbrMetallicRoughness": {
+        "baseColorTexture": {
+          "index": 2
+        },
+        "metallicRoughnessTexture": {
+          "index": 3
+        }
+      },
+      "alphaMode": "MASK",
+      "name": "42",
+      "doubleSided": true,
+      "extensions": {
+        "KHR_materials_pbrSpecularGlossiness": {
+          "diffuseTexture": {
+            "index": 0
+          },
+          "specularGlossinessTexture": {
+            "index": 1
+          }
+        }
+      },
+      "extras": {
+        "MSFT_sRGBFactors": false
+      }
+    }
+  ],
+  "meshes": [
+    {
+      "name": "mesh_id31",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 1,
+            "NORMAL": 2,
+            "TEXCOORD_0": 3
+          },
+          "indices": 0,
+          "material": 0
+        }
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "children": [
+        1
+      ],
+      "name": "root"
+    },
+    {
+      "translation": [
+        -7.54102666178369E-06,
+        -0.1766241192817688,
+        0.25588861107826233
+      ],
+      "scale": [
+        0.067475959658622742,
+        0.067475959658622742,
+        0.067475959658622742
+      ],
+      "mesh": 0,
+      "name": "node_id30"
+    }
+  ],
+  "samplers": [
+    {
+      "minFilter": 9985
+    }
+  ],
+  "scenes": [
+    {
+      "nodes": [
+        0
+      ]
+    }
+  ],
+  "scene": 0,
+  "textures": [
+    {
+      "name": "texture5",
+      "sampler": 0,
+      "source": 0
+    },
+    {
+      "name": "texture7",
+      "sampler": 0,
+      "source": 1
+    },
+    {
+      "name": "42_bc",
+      "sampler": 0,
+      "source": 2
+    },
+    {
+      "name": "42_mr",
+      "sampler": 0,
+      "source": 3
+    }
+  ],
+  "extensionsUsed": [
+    "KHR_materials_pbrSpecularGlossiness"
+  ]
+}

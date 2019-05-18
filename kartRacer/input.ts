@@ -1,5 +1,4 @@
 import { Scene, ActionManager, ExecuteCodeAction, Observer, Engine, Scalar } from '@babylonjs/core';
-import { KartEngine } from './engine';
 
 export interface IKartInput {
     horizontal: number; // Left = -1, Right = 1, Center = 0
@@ -8,7 +7,7 @@ export interface IKartInput {
     drift: boolean;
 }
 
-export class KartInput_KeyboardAndTouch implements IKartInput {
+export class KartInput implements IKartInput {
     public horizontal: number = 0;
     public accelerate: number = 0;
     public brake: number = 0;

@@ -1,4 +1,4 @@
-import { SceneLoader, Mesh, Sound, TransformNode, Scene, AnimationGroup, AbstractMesh } from "@babylonjs/core";
+import { SceneLoader, Mesh, Sound, TransformNode, Scene, AnimationGroup, AbstractMesh, PBRMaterial } from "@babylonjs/core";
 import { GLTFFileLoader, GLTFLoaderAnimationStartMode } from "@babylonjs/loaders/glTF";
 
 export class Assets {
@@ -11,10 +11,9 @@ export class Assets {
     public poison: Mesh;
     public engineSound: Sound;
     public music: Sound;
+    public unlitMaterial: PBRMaterial;
 
-    public async loadAssets(scene: Scene): Promise<void> {
-        scene.getEngine().displayLoadingUI();
-
+    public async loadAsync(scene: Scene): Promise<void> {
         const observer = SceneLoader.OnPluginActivatedObservable.add((loader: GLTFFileLoader) => {
             loader.animationStartMode = GLTFLoaderAnimationStartMode.NONE;
         });
@@ -39,7 +38,7 @@ export class Assets {
         this.kart.name = "kart";
         this.kart.parent = assets;
 
-        async function loadMergedAsset(name: string, path: string): Promise<Mesh> {
+        async function loadMergedAssetAsync(name: string, path: string): Promise<Mesh> {
             const container = await SceneLoader.LoadAssetContainerAsync(path);
             const root = container.meshes[0] as Mesh;
             const merged = Mesh.MergeMeshes(root.getChildMeshes() as Mesh[], false, undefined, undefined, undefined, true);
@@ -50,11 +49,11 @@ export class Assets {
             return merged;
         }
 
-        this.tree = await loadMergedAsset("tree", "/public/models/evergreen2/evergreen2.gltf");
-        this.bomb = await loadMergedAsset("bomb", "/public/models/bomb/bomb.gltf");
-        this.boost = await loadMergedAsset("boost", "/public/models/wing.glb");
-        this.bumper = await loadMergedAsset("bumper", "/public/models/bumper.glb");
-        this.poison = await loadMergedAsset("poison", "/public/models/poison_cloud.glb");
+        this.tree = await loadMergedAssetAsync("tree", "/public/models/evergreen2/evergreen2.gltf");
+        this.bomb = await loadMergedAssetAsync("bomb", "/public/models/bomb/bomb.gltf");
+        this.boost = await loadMergedAssetAsync("boost", "/public/models/wing/wing.gltf");
+        this.bumper = await loadMergedAssetAsync("bumper", "/public/models/bumper/bumper.gltf");
+        this.poison = await loadMergedAssetAsync("poison", "/public/models/poison_cloud/poison_cloud.gltf");
 
         this.engineSound = new Sound("Music", "/public/sounds/go.mp3", scene, () => {
             this.engineSound.setVolume(0);
@@ -67,8 +66,9 @@ export class Assets {
             this.music.play();
         });
 
-        SceneLoader.OnPluginActivatedObservable.remove(observer);
+        this.unlitMaterial = new PBRMaterial("unlit", scene);
+        this.unlitMaterial.unlit = true;
 
-        scene.getEngine().hideLoadingUI();
+        SceneLoader.OnPluginActivatedObservable.remove(observer);
     }
 }
