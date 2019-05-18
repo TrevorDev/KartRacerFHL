@@ -17,22 +17,23 @@ server.listen(port)
 // socket io configuration for multiplayer
 var io = sio(server)
 var rooms: { [name: string]: { users: Array<any>, raceId: number } } = {}
-io.on('connection', function(socket:(sio.Socket & {customData:any})){
-    socket.customData = {position: {x:0,y:0,z:0}, rotation: {x:0,y:0,z:0,w:0}};
+io.on('connection', function (socket: (sio.Socket & { customData: any })) {
+    socket.customData = { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 0 } };
     console.log('a user connected');
-    socket.on("joinRoom", (e)=>{
-        if(!rooms[e.roomName]){
+    socket.on("joinRoom", (e) => {
+        if (!rooms[e.roomName]) {
             rooms[e.roomName] = {
                 users: [],
-                raceId: 0
+                raceId: 1
             }
         }
         socket.customData.roomName = e.roomName;
         socket.customData.playerName = e.playerName;
-        rooms[socket.customData.roomName].users.push(socket)
-        socket.emit("joinRoomComplete", {id: socket.id, pingMS: pingMS, raceId: rooms[socket.customData.roomName].raceId})
+        const room = rooms[socket.customData.roomName];
+        room.users.push(socket);
+        socket.emit("joinRoomComplete", { id: socket.id, pingMS: pingMS, raceId: room.raceId });
     })
-    socket.on("updateKartPose", (pose)=>{
+    socket.on("updateKartPose", (pose) => {
         socket.customData.position.x = pose.position.x
         socket.customData.position.y = pose.position.y
         socket.customData.position.z = pose.position.z
@@ -44,49 +45,43 @@ io.on('connection', function(socket:(sio.Socket & {customData:any})){
             socket.customData.rotation.w = pose.rotation.w
         }
     })
-    socket.on("disconnect", ()=>{
-        if(!rooms[socket.customData.roomName]){
+    socket.on("disconnect", () => {
+        if (!rooms[socket.customData.roomName]) {
             return;
         }
         var index = rooms[socket.customData.roomName].users.indexOf(socket)
-        if(index == -1){
+        if (index == -1) {
             return;
         }
         rooms[socket.customData.roomName].users.splice(index, 1)
-        rooms[socket.customData.roomName].users.forEach((s:(sio.Socket & {customData:any}))=>{
+        rooms[socket.customData.roomName].users.forEach((s: (sio.Socket & { customData: any })) => {
             s.emit("userDisconnected", socket.id)
         })
     })
-    socket.on("raceComplete", (e)=>{
-        if(!rooms[socket.customData.roomName]){
+    socket.on("raceComplete", (e) => {
+        const room = rooms[socket.customData.roomName];
+        if (!room) {
             return;
         }
-        console.log(e.raceId, rooms[socket.customData.roomName].raceId)
-        if(e.raceId == rooms[socket.customData.roomName].raceId){
-            rooms[socket.customData.roomName].raceId++; 
-            rooms[socket.customData.roomName].users.forEach((s:(sio.Socket & {customData:any}))=>{
-                s.emit("raceComplete", {raceId: rooms[socket.customData.roomName].raceId, winnerName: e.name})
+        console.log(e.raceId, room.raceId);
+        if (e.raceId == room.raceId) {
+            room.raceId++;
+            room.users.forEach((s: (sio.Socket & { customData: any })) => {
+                s.emit("raceComplete", { raceId: room.raceId, winnerName: e.name })
             })
-            
+
         }
         console.log("race reset")
-
     })
 });
 
 // Ping loop
-var repeat = (fn:Function, ms:number)=>{
-    fn();
-    setTimeout(() => {
-        repeat(fn, ms);
-    }, ms);
-}
-repeat(()=>{
-    for(var key in rooms){
-        var ret = rooms[key].users.map((s:sio.Socket & {customData:any})=>{
-            return {id: s.id, name: s.customData.playerName, position: s.customData.position, rotation: s.customData.rotation}
+setInterval(() => {
+    for (var key in rooms) {
+        var ret = rooms[key].users.map((s: sio.Socket & { customData: any }) => {
+            return { id: s.id, name: s.customData.playerName, position: s.customData.position, rotation: s.customData.rotation }
         })
-        rooms[key].users.forEach((s:sio.Socket & {customData:any})=>{
+        rooms[key].users.forEach((s: sio.Socket & { customData: any }) => {
             s.emit("serverUpdate", ret);
         })
     }

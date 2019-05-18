@@ -1,12 +1,12 @@
-import { Vector3, Nullable, Quaternion, Scene, Scalar, Tools } from '@babylonjs/core';
+import { Vector3, Nullable, Quaternion, Scene, Scalar, Tools, Observable } from '@babylonjs/core';
 import { Kart } from './kart';
 import { Assets } from './assets';
 
 // Socket io
 declare var io: any;
 
-export interface IServerInfo {
-    varianceSeed: number;
+export interface IRaceInfo {
+    trackVarianceSeed: number;
 }
 
 export class Multiplayer {
@@ -15,6 +15,7 @@ export class Multiplayer {
     public trackedServerObjects: { [key: string]: { lastPose: { position: Vector3, rotation: Quaternion }, targetPose: { position: Vector3, rotation: Quaternion }, object: Nullable<{ position: Vector3, rotationQuaternion: Quaternion }> } } = {};
     public lastTime = new Date();
     public pingMS = 1;
+    public onNewRaceObservable = new Observable<IRaceInfo>();
     private _scene: Scene;
     private _assets: Assets;
     private _mainKart: Kart;
@@ -28,16 +29,12 @@ export class Multiplayer {
         this._mainKart = mainKart;
     }
 
-    public connectAsync(roomName: string, playerName: string, trackedObject: Nullable<{ position: Vector3, rotationQuaternion: Quaternion }>): Promise<IServerInfo> {
+    public connectAsync(roomName: string, playerName: string, trackedObject: Nullable<{ position: Vector3, rotationQuaternion: Quaternion }>): Promise<IRaceInfo> {
         return new Promise(resolve => {
             var socket: SocketIO.Socket = io();
             this._socket = socket;
             socket.emit("joinRoom", { roomName: "test", playerName: playerName });
             socket.on("joinRoomComplete", (e) => {
-                resolve({
-                    varianceSeed: 1
-                });
-
                 this._raceId = e.raceId;
                 this.localId = e.id;
                 this.trackedObject = trackedObject;
@@ -84,12 +81,18 @@ export class Multiplayer {
                         this._mainKart.PlayerMenu.SetWinText("GG! The winner is\n" + info.winnerName);
                         setTimeout(() => {
                             this._raceId = info.raceId;
-                            this._mainKart.reset();
-                            this._waitingForNextRace = false
+                            this.onNewRaceObservable.notifyObservers({
+                                trackVarianceSeed: this._raceId
+                            });
+                            this._waitingForNextRace = false;
                         }, 4000);
                     }
                 })
-            })
+
+                resolve({
+                    trackVarianceSeed: this._raceId
+                });
+            });
         });
     }
 
@@ -97,8 +100,6 @@ export class Multiplayer {
         var curTime = new Date()
         var ratio = Scalar.Clamp((curTime.getTime() - this.lastTime.getTime()) / this.pingMS, 0, 1.1)
         for (var key in this.trackedServerObjects) {
-
-
             Vector3.LerpToRef(this.trackedServerObjects[key].lastPose.position, this.trackedServerObjects[key].targetPose.position, ratio, this.trackedServerObjects[key].object.position)
             Quaternion.SlerpToRef(this.trackedServerObjects[key].lastPose.rotation, this.trackedServerObjects[key].targetPose.rotation, ratio, this.trackedServerObjects[key].object.rotationQuaternion)
 

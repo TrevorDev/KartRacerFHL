@@ -1,4 +1,4 @@
-import { SceneLoader, Mesh, Sound, TransformNode, Scene, AnimationGroup, AbstractMesh, PBRMaterial } from "@babylonjs/core";
+import { SceneLoader, Mesh, Sound, TransformNode, Scene, AnimationGroup, AbstractMesh, PBRMaterial, Texture } from "@babylonjs/core";
 import { GLTFFileLoader, GLTFLoaderAnimationStartMode } from "@babylonjs/loaders/glTF";
 
 export class Assets {
@@ -12,6 +12,10 @@ export class Assets {
     public engineSound: Sound;
     public music: Sound;
     public unlitMaterial: PBRMaterial;
+    public trackRoadMaterial: PBRMaterial;
+    public trackBoundaryMaterial: PBRMaterial;
+    public trackWallMaterial: PBRMaterial;
+    public trackGoalMaterial: PBRMaterial;
 
     public async loadAsync(scene: Scene): Promise<void> {
         const observer = SceneLoader.OnPluginActivatedObservable.add((loader: GLTFFileLoader) => {
@@ -69,6 +73,36 @@ export class Assets {
         this.unlitMaterial = new PBRMaterial("unlit", scene);
         this.unlitMaterial.unlit = true;
 
+        this.trackRoadMaterial = this._createMaterial("trackRoad", scene);
+        this.trackRoadMaterial.albedoTexture = new Texture("public/textures/SimpleTrack_basecolor.png", scene);
+        this.trackRoadMaterial.bumpTexture = new Texture("public/textures/SimpleTrack_normal.png", scene);
+        this.trackRoadMaterial.metallicTexture = new Texture("public/textures/SimpleTrack_ORM.png", scene);
+
+        this.trackBoundaryMaterial = this._createMaterial("trackBoundary", scene);
+        this.trackBoundaryMaterial.albedoTexture = new Texture("public/textures/TrackBoundary_basecolor.png", scene);
+        this.trackBoundaryMaterial.bumpTexture = new Texture("public/textures/TrackBoundary_normal.png", scene);
+        this.trackBoundaryMaterial.metallicTexture = new Texture("public/textures/TrackBoundary_ORM.png", scene);
+
+        this.trackWallMaterial = this._createMaterial("trackWall", scene);
+        this.trackWallMaterial.albedoTexture = new Texture("public/textures/StylizedWall_basecolor.png", scene);
+        this.trackWallMaterial.bumpTexture = new Texture("public/textures/StylizedWall_normal.png", scene);
+        this.trackWallMaterial.metallicTexture = new Texture("public/textures/StylizedWall_ORM.png", scene);
+
+        this.trackGoalMaterial = this._createMaterial("trackGoal", scene);
+        this.trackGoalMaterial.albedoTexture = new Texture("public/textures/goal_basecolor.png", scene);
+
         SceneLoader.OnPluginActivatedObservable.remove(observer);
+    }
+
+    private _createMaterial(name: string, scene: Scene): PBRMaterial {
+        const material = new PBRMaterial(name, scene);
+        material.metallic = 1;
+        material.roughness = 1;
+        material.backFaceCulling = false;
+        material.twoSidedLighting = true;
+        material.useMetallnessFromMetallicTextureBlue = true;
+        material.useRoughnessFromMetallicTextureGreen = true;
+        material.useRoughnessFromMetallicTextureAlpha = false;
+        return material;
     }
 }

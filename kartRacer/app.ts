@@ -1,6 +1,6 @@
 import "@babylonjs/core/Debug/debugLayer";
 import "@babylonjs/inspector";
-import { Vector3, DirectionalLight, CubeTexture, Tools, Scene, Engine } from "@babylonjs/core";
+import { Vector3, DirectionalLight, CubeTexture, Tools, Scene, Engine, Observer, Nullable } from "@babylonjs/core";
 import { Billboard } from "./billboard";
 import { Kart } from "./kart";
 import { IKartInput, KartInput } from "./input";
@@ -9,12 +9,12 @@ import { Multiplayer } from "./multiplayer";
 import { Track } from "./track";
 import { Menu } from "./menu";
 
-
 class App {
     private _scene: Scene;
     private _assets: Assets;
     private _input: IKartInput;
     private _mainKart: Kart;
+    private _track: Track;
 
     constructor() {
         const canvas = this._createCanvas();
@@ -103,31 +103,24 @@ class App {
 
             engine.displayLoadingUI();
 
-            const serverInfo = await multiplayer.connectAsync("testRoom", racerName, this._mainKart);
+            const raceInfo = await multiplayer.connectAsync("testRoom", racerName, this._mainKart);
 
-            const track = new Track(this._scene, this._assets, {
-                radius: 200,
-                numPoints: 16,
-                varianceSeed: serverInfo.varianceSeed,
-                lateralVariance: 50,
-                heightVariance: 20,
-                width: 35,
-                height: 5
+            multiplayer.onNewRaceObservable.add(async (newRaceInfo) => {
+                engine.displayLoadingUI();
+
+                this._newRace(newRaceInfo.trackVarianceSeed);
+
+                await this._scene.whenReadyAsync();
+                engine.hideLoadingUI();
             });
-
-            const checkpoints = track.trackPoints.map(value => value.point);
-            this._mainKart.initializeTrackProgress(checkpoints, track.startPoint, track.startTarget);
 
             const camera = this._mainKart.activateKartCamera();
             const menu = new Menu(camera, this._scene, this._assets);
             this._mainKart.PlayerMenu = menu;
-            this._mainKart.reset();
             this._mainKart.kartName = racerName;
             menu.EnableHud();
 
-            await this._scene.whenReadyAsync();
-
-            engine.hideLoadingUI();
+            this._newRace(raceInfo.trackVarianceSeed);
 
             // Main render loop
             this._scene.onBeforeRenderObservable.add(() => {
@@ -143,8 +136,33 @@ class App {
 
                     multiplayer.raceComplete(this._mainKart.kartName);
                 }
-            })
+            });
+
+            await this._scene.whenReadyAsync();
+            engine.hideLoadingUI();
         });
+    }
+
+    private _newRace(varianceSeed: number): void {
+        if (this._track) {
+            this._track.dispose();
+        }
+
+        this._track = new Track(this._scene, this._assets, {
+            radius: 200,
+            numPoints: 16,
+            varianceSeed: varianceSeed,
+            lateralVariance: 50,
+            heightVariance: 20,
+            width: 35,
+            height: 5
+        });
+
+        const checkpoints = this._track.trackPoints.map(value => value.point);
+        const offset = new Vector3(0, 0.5, 0);
+        this._mainKart.initializeTrackProgress(checkpoints, this._track.startPoint.add(offset), this._track.startTarget.add(offset));
+        this._mainKart.setDeathPositionY(this._track.trackPoints.reduce((p, c) => p.point.y < c.point.y ? p : c).point.y - 0.1);
+        this._mainKart.reset();
     }
 }
 

@@ -12,6 +12,7 @@ export class Kart extends TransformNode {
     private _camera: FreeCamera;
     private _input: IKartInput;
     private _hits: number = 0;
+    private _deathPositionY: number;
     private _particlesLeft: ParticleSystem;
     private _particlesRight: ParticleSystem;
     private _particlesState: ParticleSystem;
@@ -98,6 +99,10 @@ export class Kart extends TransformNode {
         }
 
         this.setUpParticleSystems(scene);
+    }
+
+    public setDeathPositionY(value: number): void {
+        this._deathPositionY = value;
     }
 
     public activateKartCamera(): FreeCamera {
@@ -196,13 +201,12 @@ export class Kart extends TransformNode {
 
             this._velocity.addInPlace(Vector3.Down().scale(this._deltaTime));
 
-            // TODO
-            // if (this.position.y < this._minPosition) {
-            //     this.position.copyFrom(this._lastSafePosition);
-            //     this._filteredUp.copyFrom(this._lastSafeFilteredUp);
-            //     this._velocity.set(0.0, 0.0, 0.0);
-            //     this._relocity = 0.0;
-            // }
+            if (this.position.y < this._deathPositionY) {
+                this.position.copyFrom(this._lastSafePosition);
+                this._filteredUp.copyFrom(this._lastSafeFilteredUp);
+                this._velocity.set(0.0, 0.0, 0.0);
+                this._relocity = 0.0;
+            }
         }
 
         var forward = Vector3.Cross(this.right, this._filteredUp);
