@@ -13,10 +13,9 @@
             },
             "isBackground": true,
             "problemMatcher": {
-                "owner": "typescript",
                 "pattern": [
                     {
-                        "regexp": "\\[tsl\\] ERROR",
+                        "regexp": "dummy",
                         "file": 1,
                         "location": 2,
                         "message": 3
@@ -25,7 +24,7 @@
                 "background": {
                     "activeOnStart": true,
                     "beginsPattern": "Compilation  starting",
-                    "endsPattern": "Built at:"
+                    "endsPattern": "Compilation  finished"
                 }
             },
         }
