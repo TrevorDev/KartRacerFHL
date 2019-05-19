@@ -265,10 +265,11 @@ export class Track {
         trees.parent = this._track;
         const treePoints = this._getTreePoints(trackPoints, 0.9, 10.0, 7.0);
         for (const treePoint of treePoints) {
-            const tree = assets.tree.createInstance("tree");
-            tree.isPickable = false;
-            tree.position.copyFrom(treePoint);
-            tree.parent = trees;
+            const instance = assets.tree.createInstance("tree");
+            instance.isPickable = false;
+            instance.position.copyFrom(treePoint);
+            instance.rotation.y = this._random() * Scalar.TwoPi;
+            instance.parent = trees;
         }
     }
 
@@ -285,15 +286,16 @@ export class Track {
         poisonHazards.parent = hazards;
 
         const instances: Array<InstancedMesh> = [];
-        function createHazard(name: string, mesh: Mesh, point: Vector3, rotationY: number, group: TransformNode, hazardScale: number): void {
+        const createHazard = (name: string, mesh: Mesh, point: Vector3, rotationY: number, group: TransformNode, hazardScale: number): void => {
             const instance = mesh.createInstance(name);
             instance.isPickable = false;
             instance.scaling.scaleInPlace(hazardScale);
             instance.addRotation(0, rotationY, 0);
             instance.position.copyFrom(point);
+            instance.rotation.y = this._random() * Scalar.TwoPi;
             instance.parent = group;
             instances.push(instance);
-        }
+        };
 
         const hazardPoints = this._getHazardPoints(1.5, 0.13, trackPoints);
         for (const hazardPoint of hazardPoints) {
