@@ -1,4 +1,4 @@
-import { SceneLoader, Mesh, Sound, TransformNode, Scene, AnimationGroup, AbstractMesh, PBRMaterial, Texture } from "@babylonjs/core";
+import { SceneLoader, Mesh, Sound, TransformNode, Scene, AnimationGroup, AbstractMesh, PBRMaterial, Texture, Vector3, Scalar, Quaternion } from "@babylonjs/core";
 import { GLTFFileLoader, GLTFLoaderAnimationStartMode } from "@babylonjs/loaders/glTF";
 
 export class Assets {
@@ -24,6 +24,19 @@ export class Assets {
 
         const assets = new TransformNode("assets", scene);
 
+        // HACK to fix the kart asset
+        function cleanAnimationGroup(animationGroup: AnimationGroup): AnimationGroup {
+            const newAnimationGroup = new AnimationGroup(`${animationGroup.name}_cleaned`, scene);
+            for (const targetedAnimation of animationGroup.targetedAnimations) {
+                const values = targetedAnimation.animation.getKeys().map(key => key.value);
+                if (((values[0] instanceof Vector3) && !values.every(value => Vector3.DistanceSquared(value, values[0]) < 0.0001)) ||
+                    ((values[0] instanceof Quaternion) && !values.every(value => Quaternion.AreClose(value, values[0])))) {
+                    newAnimationGroup.addTargetedAnimation(targetedAnimation.animation, targetedAnimation.target);
+                }
+            }
+            return newAnimationGroup;
+        }
+
         const kartResult = await SceneLoader.ImportMeshAsync(null, "/public/models/roadsterKart/roadsterKart.gltf");
         const kartMesh = kartResult.meshes[0];
         kartMesh.scaling.scaleInPlace(0.05);
@@ -32,8 +45,8 @@ export class Assets {
         this.mainKartInfo = {
             mesh: kartResult.meshes[0],
             animationGroups: {
-                wheelsRotation: kartResult.animationGroups[0],
-                steering: kartResult.animationGroups[1]
+                wheelsRotation: cleanAnimationGroup(kartResult.animationGroups[0]),
+                steering: cleanAnimationGroup(kartResult.animationGroups[1])
             }
         };
 

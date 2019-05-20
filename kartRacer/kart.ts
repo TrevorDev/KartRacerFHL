@@ -42,9 +42,10 @@ export class Kart extends TransformNode {
     private static readonly TOP_THRESHOLD: number = 3.7;
     private static readonly MAX_SPEED: number = 4.3;
 
-    private static readonly TARGET_GROUND_SPEED_FACTORS: { [type: string]: number } = {
-        "apron": 0.7,
-        "flat": 0.3,
+    private static readonly VELOCITY_DECAY_SCALARS: { [type: string]: number } = {
+        "road": 4.0,
+        "apron": 6.0,
+        "flat": 10.0,
     };
 
     private _velocity: Vector3 = Vector3.Zero();
@@ -61,7 +62,7 @@ export class Kart extends TransformNode {
     private _velocityFactor: number;
     private _currentVelocityFactor: number = 0;
     private _initialPosition: Vector3;
-    private _groundSpeedFactor: number = 1;
+    private _velocityDecayScalar: number = Kart.VELOCITY_DECAY_SCALARS["road"];
 
     private _initialLookAt: Vector3;
     private _checkpoints: Vector3[];
@@ -83,8 +84,8 @@ export class Kart extends TransformNode {
             this._input = input;
             const mainKartInfo = assets.mainKartInfo;
             this._animationGroups = mainKartInfo.animationGroups;
-            // this._animationGroups.wheelsRotation.play(true);
-            // this._animationGroups.wheelsRotation.speedRatio = 0;
+            this._animationGroups.wheelsRotation.play(true);
+            this._animationGroups.wheelsRotation.speedRatio = 0;
             this._animationGroups.steering.play(true);
             this._animationGroups.steering.pause();
             this._mesh = mainKartInfo.mesh;
@@ -189,8 +190,7 @@ export class Kart extends TransformNode {
             this._lastSafeFilteredUp.copyFrom(this._filteredUp);
 
             const tags = Tags.GetTags(hit.pickedMesh);
-            const targetGroundSpeedFactor = Kart.TARGET_GROUND_SPEED_FACTORS[tags];
-            this._groundSpeedFactor = Scalar.Lerp(this._groundSpeedFactor, targetGroundSpeedFactor || 1.0, 0.1);
+            this._velocityDecayScalar = Kart.VELOCITY_DECAY_SCALARS[tags];
         }
         else {
             this._filteredUp = Vector3.Lerp(
@@ -393,8 +393,8 @@ export class Kart extends TransformNode {
         this._velocity.subtractInPlace(this.forward.scale(this.getBack() * this._deltaTime));
 
         if (this._animationGroups) {
-            // const wheelsRotation = this._animationGroups.wheelsRotation;
-            // wheelsRotation.speedRatio = this._velocity.length();
+            const wheelsRotation = this._animationGroups.wheelsRotation;
+            wheelsRotation.speedRatio = this._velocity.length() * 300 / 17.825;
 
             const steering = this._animationGroups.steering;
             steering.goToFrame((this._input.horizontal + 1) * 0.5 * steering.to);
@@ -448,10 +448,10 @@ export class Kart extends TransformNode {
             this.updateFromControls();
         }
 
-        this._velocity.scaleInPlace(1.0 - (Kart.VELOCITY_DECAY_SCALAR * this._deltaTime));
+        this._velocity.scaleInPlace(1.0 - (this._velocityDecayScalar * this._deltaTime));
         this._relocity *= (1.0 - (Kart.TURN_DECAY_SCALAR * this._deltaTime));
 
-        this.position.addInPlace(this._velocity.scale(this._deltaTime * 60 * this._groundSpeedFactor));
+        this.position.addInPlace(this._velocity.scale(this._deltaTime * 60));
 
         this.updateParticles(this._velocity.length());
     }
