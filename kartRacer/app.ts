@@ -27,10 +27,9 @@ class App {
         // Load environment
         const environmentTexture = CubeTexture.CreateFromPrefilteredData("public/environment/environment.env", this._scene);
         environmentTexture.rotationY = Tools.ToRadians(45);
-        this._scene.createDefaultSkybox(environmentTexture, true, 1000);
-        this._scene.environmentTexture.level = 0.5;
+        this._scene.createDefaultSkybox(environmentTexture, true, 1000, 0.2);
         const light = new DirectionalLight("light", new Vector3(1, -2, 0), this._scene);
-        light.intensity = 2.0;
+        light.intensity = 3.0;
 
         window.addEventListener("resize", () => {
             engine.resize();
