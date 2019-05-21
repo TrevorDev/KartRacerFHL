@@ -80,27 +80,24 @@ export class Kart extends TransformNode {
         this._engineSound = assets.engineSound;
         this._unlitMaterial = assets.unlitMaterial;
 
-        if (main) {
-            this._input = input;
-            const mainKart = assets.mainKart;
-            this._animationGroups = {
-                wheelsRotation: mainKart.animationGroups[0],
-                steering: mainKart.animationGroups[1]
-            };
-            this._animationGroups.wheelsRotation.play(true);
-            this._animationGroups.wheelsRotation.speedRatio = 0;
-            this._animationGroups.steering.play(true);
-            this._animationGroups.steering.pause();
-            this._mesh = mainKart.mesh;
+        assets.loadKartAsync(scene).then(assetInfo => {
+            this._mesh = assetInfo.mesh;
             this._mesh.name = "model";
             this._mesh.parent = this;
-        }
-        else {
-            this._mesh = assets.kart.mesh.createInstance("model");
-            this._mesh.scaling.scaleInPlace(0.05);
-            this._mesh.isPickable = false;
-            this._mesh.parent = this;
-        }
+
+            this._animationGroups = {
+                wheelsRotation: assetInfo.animationGroups[0],
+                steering: assetInfo.animationGroups[1]
+            };
+
+            this._animationGroups.wheelsRotation.play(true);
+            this._animationGroups.wheelsRotation.speedRatio = 0;
+
+            this._animationGroups.steering.play(true);
+            this._animationGroups.steering.pause();
+        });
+
+        this._input = input;
 
         this.setUpParticleSystems(scene);
     }
@@ -605,7 +602,6 @@ export class Kart extends TransformNode {
             this._particlesState.emitRate = 0;
         }
     }
-
 
     public reset() {
         this._hits = 0;

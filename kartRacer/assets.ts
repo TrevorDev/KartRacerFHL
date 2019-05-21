@@ -1,14 +1,25 @@
 import { SceneLoader, Mesh, Sound, TransformNode, Scene, AnimationGroup, PBRMaterial, Texture, Vector3, Quaternion } from "@babylonjs/core";
 import { GLTFFileLoader, GLTFLoaderAnimationStartMode } from "@babylonjs/loaders/glTF";
 
+// HACK to fix the kart asset
+function cleanAnimationGroup(scene: Scene, animationGroup: AnimationGroup): AnimationGroup {
+    const newAnimationGroup = new AnimationGroup(`${animationGroup.name}_cleaned`, scene);
+    for (const targetedAnimation of animationGroup.targetedAnimations) {
+        const values = targetedAnimation.animation.getKeys().map(key => key.value);
+        if (((values[0] instanceof Vector3) && !values.every(value => Vector3.DistanceSquared(value, values[0]) < 0.0001)) ||
+            ((values[0] instanceof Quaternion) && !values.every(value => Quaternion.AreClose(value, values[0])))) {
+            newAnimationGroup.addTargetedAnimation(targetedAnimation.animation, targetedAnimation.target);
+        }
+    }
+    return newAnimationGroup;
+}
+
 export interface IAssetInfo {
     mesh: Mesh;
     animationGroups: Array<AnimationGroup>;
 }
 
 export class Assets {
-    public mainKart: IAssetInfo;
-    public kart: IAssetInfo;
     public tree: IAssetInfo;
     public bomb: IAssetInfo;
     public boost: IAssetInfo;
@@ -22,6 +33,41 @@ export class Assets {
     public trackWallMaterial: PBRMaterial;
     public trackGoalMaterial: PBRMaterial;
 
+    public async loadKartAsync(scene: Scene): Promise<IAssetInfo> {
+        const result = await SceneLoader.ImportMeshAsync(null, "/public/models/roadsterKart/roadsterKart.gltf", undefined, scene);
+        const root = result.meshes[0];
+        root.scaling.scaleInPlace(0.05);
+
+        const bodyMaterialIndex = Math.floor((Math.random() * 3));
+        if (bodyMaterialIndex < 2) {
+            const bodyMaterials = [
+                root.getChildMeshes(false).find(c => c.name === "bodyMat2").material,
+                root.getChildMeshes(false).find(c => c.name === "bodyMat3").material,
+            ];
+
+            const bodyMeshes = root.getChildTransformNodes(false).find(c => c.name === "carBody_low").getChildMeshes(false);
+            for (const bodyMesh of bodyMeshes) {
+                bodyMesh.material = bodyMaterials[bodyMaterialIndex];
+            }
+        }
+
+        const driverMaterialIndex = Math.floor((Math.random() * 3));
+        if (driverMaterialIndex < 2) {
+            const driverMaterials = [
+                root.getChildMeshes(false).find(c => c.name === "driverMat2").material,
+                root.getChildMeshes(false).find(c => c.name === "driverMat3").material,
+            ];
+
+            const driverMesh = root.getChildMeshes(false).find(c => c.name === "driver_low");
+            driverMesh.material = driverMaterials[driverMaterialIndex];
+        }
+
+        return {
+            mesh: root as Mesh,
+            animationGroups: result.animationGroups
+        };
+    }
+
     public async loadAsync(scene: Scene): Promise<void> {
         const observer = SceneLoader.OnPluginActivatedObservable.add((loader: GLTFFileLoader) => {
             loader.animationStartMode = GLTFLoaderAnimationStartMode.NONE;
@@ -29,58 +75,8 @@ export class Assets {
 
         const assets = new TransformNode("assets", scene);
 
-        // HACK to fix the kart asset
-        function cleanAnimationGroup(animationGroup: AnimationGroup): AnimationGroup {
-            const newAnimationGroup = new AnimationGroup(`${animationGroup.name}_cleaned`, scene);
-            for (const targetedAnimation of animationGroup.targetedAnimations) {
-                const values = targetedAnimation.animation.getKeys().map(key => key.value);
-                if (((values[0] instanceof Vector3) && !values.every(value => Vector3.DistanceSquared(value, values[0]) < 0.0001)) ||
-                    ((values[0] instanceof Quaternion) && !values.every(value => Quaternion.AreClose(value, values[0])))) {
-                    newAnimationGroup.addTargetedAnimation(targetedAnimation.animation, targetedAnimation.target);
-                }
-            }
-            return newAnimationGroup;
-        }
-
-        const kartResult = await SceneLoader.ImportMeshAsync(null, "/public/models/roadsterKart/roadsterKart.gltf");
-        kartResult.meshes[0].scaling.scaleInPlace(0.05);
-        kartResult.meshes[0].isPickable = false;
-        kartResult.meshes[0].getChildMeshes().forEach(child => child.isPickable = false);
-
-        const kartMesh = kartResult.meshes[0].clone("", null, false);
-
-        this.mainKart = {
-            mesh: kartResult.meshes[0] as Mesh,
-            animationGroups: kartResult.animationGroups.map(animationGroup => cleanAnimationGroup(animationGroup))
-        };
-
-        var rand = Math.random();
-        var bodyMatNum = 1
-        if( rand < 0.33 ){
-            bodyMatNum = 2
-        }else if(rand < 0.66){
-            bodyMatNum = 3
-        }
-        this.mainKart.mesh.getChildMeshes(false).filter((c)=>{return c.name.indexOf("roadsterBody_low") != -1})[0].material = scene.materials.filter((m)=>{return m.name == "kartBodyMat"+bodyMatNum})[0]
-        this.mainKart.mesh.getChildMeshes(false).filter((c)=>{return c.name.indexOf("rollCage_low") != -1})[0].material = scene.materials.filter((m)=>{return m.name == "kartBodyMat"+bodyMatNum})[0]
-        this.mainKart.mesh.getChildMeshes(false).filter((c)=>{return c.name.indexOf("seat_low") != -1})[0].material = scene.materials.filter((m)=>{return m.name == "kartBodyMat"+bodyMatNum})[0]
-        this.mainKart.mesh.getChildMeshes(false).filter((c)=>{return c.name.indexOf("wheelDash_low") != -1})[0].material = scene.materials.filter((m)=>{return m.name == "kartBodyMat"+bodyMatNum})[0]
-
-        // const mergedKartMesh = Mesh.MergeMeshes(kartMesh.getChildMeshes() as Mesh[], false, undefined, undefined, undefined, true);
-        // mergedKartMesh.setEnabled(false);
-        // mergedKartMesh.name = "kart";
-        // mergedKartMesh.parent = assets;
-        this.kart = {
-            mesh: kartMesh as any,
-            animationGroups: []
-        };
-        this.kart.mesh.getChildMeshes(false).filter((c)=>{return c.name.indexOf("roadsterBody_low") != -1})[0].material = scene.materials.filter((m)=>{return m.name == "kartBodyMat1"})[0]
-        this.kart.mesh.getChildMeshes(false).filter((c)=>{return c.name.indexOf("rollCage_low") != -1})[0].material = scene.materials.filter((m)=>{return m.name == "kartBodyMat1"})[0]
-        this.kart.mesh.getChildMeshes(false).filter((c)=>{return c.name.indexOf("seat_low") != -1})[0].material = scene.materials.filter((m)=>{return m.name == "kartBodyMat1"})[0]
-        this.kart.mesh.getChildMeshes(false).filter((c)=>{return c.name.indexOf("wheelDash_low") != -1})[0].material = scene.materials.filter((m)=>{return m.name == "kartBodyMat1"})[0]
-
         async function loadMergedAssetAsync(name: string, path: string): Promise<IAssetInfo> {
-            const container = await SceneLoader.LoadAssetContainerAsync(path);
+            const container = await SceneLoader.LoadAssetContainerAsync(path, undefined, scene);
             const root = container.meshes[0];
             const merged = Mesh.MergeMeshes(root.getChildMeshes() as Mesh[], false, undefined, undefined, undefined, true);
             merged.setEnabled(false);
@@ -89,7 +85,7 @@ export class Assets {
             root.dispose();
             return {
                 mesh: merged,
-                animationGroups: container.animationGroups.map(animationGroup => cleanAnimationGroup(animationGroup))
+                animationGroups: container.animationGroups.map(animationGroup => cleanAnimationGroup(scene, animationGroup))
             };
         }
 
