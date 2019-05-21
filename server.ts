@@ -2,6 +2,19 @@ import * as express from "express"
 import * as http from "http"
 import * as sio from "socket.io";
 
+interface ISocket extends sio.Socket {
+    customData: {
+        roomName: string;
+        playerName: string;
+        position: { x: number, y: number, z: number };
+        rotationQuaternion: { x: number, y: number, z: number, w: number };
+        wheelsRotationSpeedRatio: number;
+        steeringAnimationFrame: number;
+        bodyMaterialIndex: number;
+        driverMaterialIndex: number;
+    }
+}
+
 var port = 3000;
 var pingMS = 100;
 
@@ -17,8 +30,17 @@ server.listen(port)
 // socket io configuration for multiplayer
 var io = sio(server)
 var rooms: { [name: string]: { users: Array<any>, raceId: number } } = {}
-io.on('connection', function (socket: (sio.Socket & { customData: any })) {
-    socket.customData = { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 0 } };
+io.on('connection', function (socket: ISocket) {
+    socket.customData = {
+        roomName: "",
+        playerName: "",
+        position: { x: 0, y: 0, z: 0 },
+        rotationQuaternion: { x: 0, y: 0, z: 0, w: 0 },
+        wheelsRotationSpeedRatio: 0,
+        steeringAnimationFrame: 0,
+        bodyMaterialIndex: 0,
+        driverMaterialIndex: 0
+    };
     console.log('a user connected');
     socket.on("joinRoom", (e) => {
         if (!rooms[e.roomName]) {
@@ -29,21 +51,27 @@ io.on('connection', function (socket: (sio.Socket & { customData: any })) {
         }
         socket.customData.roomName = e.roomName;
         socket.customData.playerName = e.playerName;
+        socket.customData.bodyMaterialIndex = e.bodyMaterialIndex;
+        socket.customData.driverMaterialIndex = e.driverMaterialIndex;
         const room = rooms[socket.customData.roomName];
         room.users.push(socket);
         socket.emit("joinRoomComplete", { id: socket.id, pingMS: pingMS, raceId: room.raceId });
     })
     socket.on("updateKartPose", (pose) => {
-        socket.customData.position.x = pose.position.x
-        socket.customData.position.y = pose.position.y
-        socket.customData.position.z = pose.position.z
+        socket.customData.position.x = pose.p.x;
+        socket.customData.position.y = pose.p.y;
+        socket.customData.position.z = pose.p.z;
 
-        if (pose.rotation) {
-            socket.customData.rotation.x = pose.rotation.x
-            socket.customData.rotation.y = pose.rotation.y
-            socket.customData.rotation.z = pose.rotation.z
-            socket.customData.rotation.w = pose.rotation.w
-        }
+        socket.customData.rotationQuaternion.x = pose.r.x;
+        socket.customData.rotationQuaternion.y = pose.r.y;
+        socket.customData.rotationQuaternion.z = pose.r.z;
+        socket.customData.rotationQuaternion.w = pose.r.w;
+
+        socket.customData.wheelsRotationSpeedRatio = pose.w;
+        socket.customData.steeringAnimationFrame = pose.s;
+
+        socket.customData.bodyMaterialIndex = pose.b;
+        socket.customData.driverMaterialIndex = pose.d;
     })
     socket.on("disconnect", () => {
         if (!rooms[socket.customData.roomName]) {
@@ -54,7 +82,7 @@ io.on('connection', function (socket: (sio.Socket & { customData: any })) {
             return;
         }
         rooms[socket.customData.roomName].users.splice(index, 1)
-        rooms[socket.customData.roomName].users.forEach((s: (sio.Socket & { customData: any })) => {
+        rooms[socket.customData.roomName].users.forEach((s: ISocket) => {
             s.emit("userDisconnected", socket.id)
         })
     })
@@ -66,7 +94,7 @@ io.on('connection', function (socket: (sio.Socket & { customData: any })) {
         console.log(e.raceId, room.raceId);
         if (e.raceId == room.raceId) {
             room.raceId++;
-            room.users.forEach((s: (sio.Socket & { customData: any })) => {
+            room.users.forEach((s: ISocket) => {
                 s.emit("raceComplete", { raceId: room.raceId, winnerName: e.name })
             })
 
@@ -78,10 +106,19 @@ io.on('connection', function (socket: (sio.Socket & { customData: any })) {
 // Ping loop
 setInterval(() => {
     for (var key in rooms) {
-        var ret = rooms[key].users.map((s: sio.Socket & { customData: any }) => {
-            return { id: s.id, name: s.customData.playerName, position: s.customData.position, rotation: s.customData.rotation }
+        var ret = rooms[key].users.map((s: ISocket) => {
+            return {
+                id: s.id,
+                name: s.customData.playerName,
+                p: s.customData.position,
+                r: s.customData.rotationQuaternion,
+                w: s.customData.wheelsRotationSpeedRatio,
+                s: s.customData.steeringAnimationFrame,
+                b: s.customData.bodyMaterialIndex,
+                d: s.customData.driverMaterialIndex,
+            }
         })
-        rooms[key].users.forEach((s: sio.Socket & { customData: any }) => {
+        rooms[key].users.forEach((s: ISocket) => {
             s.emit("serverUpdate", ret);
         })
     }

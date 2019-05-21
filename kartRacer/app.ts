@@ -82,7 +82,9 @@ class App {
 
         await this._assets.loadAsync(this._scene);
 
-        this._mainKart = new Kart("player_kart", this._scene, this._assets, true, this._input);
+        const bodyMaterialIndex = Math.floor((Math.random() * 3));
+        const driverMaterialIndex = Math.floor((Math.random() * 3));
+        this._mainKart = new Kart("player_kart", this._scene, this._assets, bodyMaterialIndex, driverMaterialIndex, this._input);
 
         const billboard = new Billboard(this._scene, this._assets);
         const multiplayer = new Multiplayer(this._scene, this._assets, this._mainKart);
@@ -102,7 +104,8 @@ class App {
 
             engine.displayLoadingUI();
 
-            const raceInfo = await multiplayer.connectAsync("testRoom", racerName, this._mainKart);
+            const raceInfo = await multiplayer.connectAsync("testRoom", racerName, this._mainKart,
+                this._mainKart.bodyMaterialIndex, this._mainKart.driverMaterialIndex);
 
             multiplayer.onNewRaceObservable.add(async (newRaceInfo) => {
                 engine.displayLoadingUI();

@@ -9,11 +9,21 @@ export interface IRaceInfo {
     trackVarianceSeed: number;
 }
 
+export interface ITrackedObject {
+    position: Vector3;
+    rotationQuaternion: Quaternion;
+    wheelsRotationSpeedRatio: number;
+    steeringAnimationFrame: number;
+}
+
+// bodyMaterialIndex: number;
+// driverMaterialIndex: number;
+
 export class Multiplayer {
     public localId: string = "";
-    public trackedObject: Nullable<{ position: Vector3, rotationQuaternion: Quaternion }>;
-    public trackedServerObjects: { [key: string]: { lastPose: { position: Vector3, rotation: Quaternion }, targetPose: { position: Vector3, rotation: Quaternion }, object: Nullable<{ position: Vector3, rotationQuaternion: Quaternion }> } } = {};
-    public lastTime = new Date();
+    public trackedObject: Nullable<ITrackedObject>;
+    public trackedServerObjects: { [key: string]: { lastPose: ITrackedObject, targetPose: ITrackedObject, object: Nullable<ITrackedObject> } } = {};
+    public lastTime = Date.now();
     public pingMS = 1;
     public onNewRaceObservable = new Observable<IRaceInfo>();
     private _scene: Scene;
@@ -29,11 +39,16 @@ export class Multiplayer {
         this._mainKart = mainKart;
     }
 
-    public connectAsync(roomName: string, playerName: string, trackedObject: Nullable<{ position: Vector3, rotationQuaternion: Quaternion }>): Promise<IRaceInfo> {
+    public connectAsync(roomName: string, playerName: string, trackedObject: Nullable<ITrackedObject>, bodyMaterialIndex: number, driverMaterialIndex: number): Promise<IRaceInfo> {
         return new Promise(resolve => {
             var socket: SocketIO.Socket = io();
             this._socket = socket;
-            socket.emit("joinRoom", { roomName: "test", playerName: playerName });
+            socket.emit("joinRoom", {
+                roomName: "test",
+                playerName: playerName,
+                bodyMaterialIndex: bodyMaterialIndex,
+                driverMaterialIndex: driverMaterialIndex
+            });
             socket.on("joinRoomComplete", (e) => {
                 this._raceId = e.raceId;
                 this.localId = e.id;
@@ -41,29 +56,40 @@ export class Multiplayer {
                 this.pingMS = e.pingMS
                 setInterval(() => {
                     if (this.trackedObject) {
-                        socket.emit("updateKartPose", { position: this.trackedObject.position, rotation: this.trackedObject.rotationQuaternion })
+                        socket.emit("updateKartPose", {
+                            p: this.trackedObject.position,
+                            r: this.trackedObject.rotationQuaternion,
+                            w: this.trackedObject.wheelsRotationSpeedRatio,
+                            s: this.trackedObject.steeringAnimationFrame,
+                            b: bodyMaterialIndex,
+                            d: driverMaterialIndex,
+                        })
                     }
                 }, e.pingMS)
 
                 socket.on("serverUpdate", (e) => {
                     e.forEach((p: any) => {
                         if (p.id != this.localId) {
-                            if (!this.trackedServerObjects[p.id]) {
-                                const kart = new Kart(p.id, this._scene, this._assets);
-                                kart.kartName =p.name;
-                                this.trackedServerObjects[p.id] = {
-                                    lastPose: { position: new Vector3(), rotation: new Quaternion() },
-                                    targetPose: { position: new Vector3(), rotation: new Quaternion() },
+                            let trackedServerObject = this.trackedServerObjects[p.id];
+                            if (!trackedServerObject) {
+                                const kart = new Kart(p.id, this._scene, this._assets, p.b, p.d);
+                                kart.kartName = p.name;
+                                trackedServerObject = {
+                                    lastPose: { position: new Vector3(), rotationQuaternion: new Quaternion(), wheelsRotationSpeedRatio: 0, steeringAnimationFrame: 0 },
+                                    targetPose: { position: new Vector3(), rotationQuaternion: new Quaternion(), wheelsRotationSpeedRatio: 0, steeringAnimationFrame: 0 },
                                     object: kart,
-                                }
-                                this.trackedServerObjects[p.id].object.rotationQuaternion = new Quaternion();
+                                };
+                                this.trackedServerObjects[p.id] = trackedServerObject;
                             }
-                            this.trackedServerObjects[p.id].lastPose.position.copyFrom(this.trackedServerObjects[p.id].targetPose.position)
-                            this.trackedServerObjects[p.id].lastPose.rotation.copyFrom(this.trackedServerObjects[p.id].targetPose.rotation)
-
-                            this.trackedServerObjects[p.id].targetPose.position.copyFrom(p.position)
-                            this.trackedServerObjects[p.id].targetPose.rotation.copyFrom(p.rotation)
-                            this.lastTime = new Date();
+                            trackedServerObject.lastPose.position.copyFrom(trackedServerObject.targetPose.position);
+                            trackedServerObject.lastPose.rotationQuaternion.copyFrom(trackedServerObject.targetPose.rotationQuaternion);
+                            trackedServerObject.lastPose.wheelsRotationSpeedRatio = trackedServerObject.targetPose.wheelsRotationSpeedRatio;
+                            trackedServerObject.lastPose.steeringAnimationFrame = trackedServerObject.targetPose.steeringAnimationFrame;
+                            trackedServerObject.targetPose.position.copyFrom(p.p);
+                            trackedServerObject.targetPose.rotationQuaternion.copyFrom(p.r);
+                            trackedServerObject.targetPose.wheelsRotationSpeedRatio = p.w;
+                            trackedServerObject.targetPose.steeringAnimationFrame = p.s;
+                            this.lastTime = Date.now();
                         }
                     })
                 })
@@ -97,16 +123,14 @@ export class Multiplayer {
     }
 
     public update() {
-        var curTime = new Date()
-        var ratio = Scalar.Clamp((curTime.getTime() - this.lastTime.getTime()) / this.pingMS, 0, 1.1)
+        var curTime = Date.now();
+        var ratio = Scalar.Clamp((curTime - this.lastTime) / this.pingMS, 0, 1.1);
         for (var key in this.trackedServerObjects) {
-            Vector3.LerpToRef(this.trackedServerObjects[key].lastPose.position, this.trackedServerObjects[key].targetPose.position, ratio, this.trackedServerObjects[key].object.position)
-            Quaternion.SlerpToRef(this.trackedServerObjects[key].lastPose.rotation, this.trackedServerObjects[key].targetPose.rotation, ratio, this.trackedServerObjects[key].object.rotationQuaternion)
-
-            // var diff = this.trackedServerObjects[key].targetPose.position.subtract(this.trackedServerObjects[key].object.position).scale(0.05)
-            // this.trackedServerObjects[key].object.position.addInPlace(diff)
-
-            //Quaternion.SlerpToRef(this.trackedServerObjects[key].object.rotationQuaternion, this.trackedServerObjects[key].targetPose.rotation, 0.05, this.trackedServerObjects[key].object.rotationQuaternion);
+            const trackedServerObject = this.trackedServerObjects[key];
+            Vector3.LerpToRef(trackedServerObject.lastPose.position, trackedServerObject.targetPose.position, ratio, trackedServerObject.object.position);
+            Quaternion.SlerpToRef(trackedServerObject.lastPose.rotationQuaternion, trackedServerObject.targetPose.rotationQuaternion, ratio, trackedServerObject.object.rotationQuaternion);
+            trackedServerObject.object.wheelsRotationSpeedRatio = Scalar.Lerp(trackedServerObject.lastPose.wheelsRotationSpeedRatio, trackedServerObject.targetPose.wheelsRotationSpeedRatio, ratio);
+            trackedServerObject.object.steeringAnimationFrame = Scalar.Lerp(trackedServerObject.lastPose.steeringAnimationFrame, trackedServerObject.targetPose.steeringAnimationFrame, ratio);
         }
     }
 

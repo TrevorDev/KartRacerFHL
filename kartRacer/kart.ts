@@ -74,13 +74,41 @@ export class Kart extends TransformNode {
     public TrackTime: string = "";
     public PlayerMenu: Menu;
 
-    constructor(kartName: string, scene: Scene, assets: Assets, main = false, input?: IKartInput) {
+    private _wheelsRotationSpeedRatio = 0;
+    public get wheelsRotationSpeedRatio(): number {
+        return this._wheelsRotationSpeedRatio;
+    }
+    public set wheelsRotationSpeedRatio(value: number) {
+        this._wheelsRotationSpeedRatio = value;
+        if (this._animationGroups) {
+            this._animationGroups.wheelsRotation.speedRatio = this._wheelsRotationSpeedRatio;
+        }
+    }
+
+    private _steeringAnimationFrame = 0;
+    public get steeringAnimationFrame(): number {
+        return this._steeringAnimationFrame;
+    }
+    public set steeringAnimationFrame(value: number) {
+        this._steeringAnimationFrame = value;
+        if (this._animationGroups) {
+            this._animationGroups.steering.goToFrame(this._steeringAnimationFrame);
+        }
+    }
+
+    public readonly bodyMaterialIndex: number;
+    public readonly driverMaterialIndex: number;
+
+    constructor(kartName: string, scene: Scene, assets: Assets, bodyMaterialIndex: number, driverMaterialIndex: number, input?: IKartInput) {
         super(kartName, scene);
+
+        this.bodyMaterialIndex = bodyMaterialIndex;
+        this.driverMaterialIndex = driverMaterialIndex;
 
         this._engineSound = assets.engineSound;
         this._unlitMaterial = assets.unlitMaterial;
 
-        assets.loadKartAsync(scene).then(assetInfo => {
+        assets.loadKartAsync(scene, bodyMaterialIndex, driverMaterialIndex).then(assetInfo => {
             this._mesh = assetInfo.mesh;
             this._mesh.name = "model";
             this._mesh.parent = this;
@@ -91,15 +119,18 @@ export class Kart extends TransformNode {
             };
 
             this._animationGroups.wheelsRotation.play(true);
-            this._animationGroups.wheelsRotation.speedRatio = 0;
+            this._animationGroups.wheelsRotation.speedRatio = this._wheelsRotationSpeedRatio;
 
             this._animationGroups.steering.play(true);
             this._animationGroups.steering.pause();
+            this._animationGroups.steering.goToFrame(this._steeringAnimationFrame);
         });
 
         this._input = input;
 
         this.setUpParticleSystems(scene);
+
+        this.rotationQuaternion = new Quaternion();
     }
 
     public setDeathPositionY(value: number): void {
@@ -211,7 +242,7 @@ export class Kart extends TransformNode {
 
         var forward = Vector3.Cross(this.right, this._filteredUp);
         var right = Vector3.Cross(this._filteredUp, forward);
-        this.rotationQuaternion = Quaternion.RotationQuaternionFromAxis(right, this._filteredUp, forward);
+        Quaternion.RotationQuaternionFromAxisToRef(right, this._filteredUp, forward, this.rotationQuaternion);
     }
 
     private updateFromWallPhysics(): void {
@@ -393,11 +424,8 @@ export class Kart extends TransformNode {
         this._velocity.subtractInPlace(this.forward.scale(this.getBack() * this._deltaTime));
 
         if (this._animationGroups) {
-            const wheelsRotation = this._animationGroups.wheelsRotation;
-            wheelsRotation.speedRatio = this._velocity.length() * 300 / 17.825;
-
-            const steering = this._animationGroups.steering;
-            steering.goToFrame((this._input.horizontal + 1) * 0.5 * steering.to);
+            this.wheelsRotationSpeedRatio = this._velocity.length() * 300 / 17.825;
+            this.steeringAnimationFrame = (this._input.horizontal + 1) * 0.5 * this._animationGroups.steering.to;
         }
     }
 

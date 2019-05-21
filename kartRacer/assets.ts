@@ -33,12 +33,11 @@ export class Assets {
     public trackWallMaterial: PBRMaterial;
     public trackGoalMaterial: PBRMaterial;
 
-    public async loadKartAsync(scene: Scene): Promise<IAssetInfo> {
+    public async loadKartAsync(scene: Scene, bodyMaterialIndex: number, driverMaterialIndex: number): Promise<IAssetInfo> {
         const result = await SceneLoader.ImportMeshAsync(null, "/public/models/roadsterKart/roadsterKart.gltf", undefined, scene);
         const root = result.meshes[0];
         root.scaling.scaleInPlace(0.05);
 
-        const bodyMaterialIndex = Math.floor((Math.random() * 3));
         if (bodyMaterialIndex < 2) {
             const bodyMaterials = [
                 root.getChildMeshes(false).find(c => c.name === "bodyMat2").material,
@@ -51,7 +50,6 @@ export class Assets {
             }
         }
 
-        const driverMaterialIndex = Math.floor((Math.random() * 3));
         if (driverMaterialIndex < 2) {
             const driverMaterials = [
                 root.getChildMeshes(false).find(c => c.name === "driverMat2").material,
