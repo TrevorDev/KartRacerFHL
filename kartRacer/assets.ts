@@ -1,14 +1,19 @@
-import { SceneLoader, Mesh, Sound, TransformNode, Scene, AnimationGroup, AbstractMesh, PBRMaterial, Texture, Vector3, Scalar, Quaternion } from "@babylonjs/core";
+import { SceneLoader, Mesh, Sound, TransformNode, Scene, AnimationGroup, PBRMaterial, Texture, Vector3, Quaternion } from "@babylonjs/core";
 import { GLTFFileLoader, GLTFLoaderAnimationStartMode } from "@babylonjs/loaders/glTF";
 
+export interface IAssetInfo {
+    mesh: Mesh;
+    animationGroups: Array<AnimationGroup>;
+}
+
 export class Assets {
-    public mainKartInfo: { mesh: AbstractMesh, animationGroups: { wheelsRotation: AnimationGroup, steering: AnimationGroup } };
-    public kart: Mesh;
-    public tree: Mesh;
-    public bomb: Mesh;
-    public boost: Mesh;
-    public bumper: Mesh;
-    public poison: Mesh;
+    public mainKart: IAssetInfo;
+    public kart: IAssetInfo;
+    public tree: IAssetInfo;
+    public bomb: IAssetInfo;
+    public boost: IAssetInfo;
+    public bumper: IAssetInfo;
+    public poison: IAssetInfo;
     public engineSound: Sound;
     public music: Sound;
     public unlitMaterial: PBRMaterial;
@@ -42,32 +47,36 @@ export class Assets {
         kartMesh.scaling.scaleInPlace(0.05);
         kartMesh.isPickable = false;
         kartMesh.getChildMeshes().forEach(child => child.isPickable = false);
-        this.mainKartInfo = {
-            mesh: kartResult.meshes[0],
-            animationGroups: {
-                wheelsRotation: cleanAnimationGroup(kartResult.animationGroups[0]),
-                steering: cleanAnimationGroup(kartResult.animationGroups[1])
-            }
+        this.mainKart = {
+            mesh: kartResult.meshes[0] as Mesh,
+            animationGroups: kartResult.animationGroups.map(animationGroup => cleanAnimationGroup(animationGroup))
         };
 
-        this.kart = Mesh.MergeMeshes(kartMesh.getChildMeshes() as Mesh[], false, undefined, undefined, undefined, true);
-        this.kart.setEnabled(false);
-        this.kart.name = "kart";
-        this.kart.parent = assets;
+        const mergedKartMesh = Mesh.MergeMeshes(kartMesh.getChildMeshes() as Mesh[], false, undefined, undefined, undefined, true);
+        mergedKartMesh.setEnabled(false);
+        mergedKartMesh.name = "kart";
+        mergedKartMesh.parent = assets;
+        this.kart = {
+            mesh: mergedKartMesh,
+            animationGroups: []
+        };
 
-        async function loadMergedAssetAsync(name: string, path: string): Promise<Mesh> {
+        async function loadMergedAssetAsync(name: string, path: string): Promise<IAssetInfo> {
             const container = await SceneLoader.LoadAssetContainerAsync(path);
-            const root = container.meshes[0] as Mesh;
+            const root = container.meshes[0];
             const merged = Mesh.MergeMeshes(root.getChildMeshes() as Mesh[], false, undefined, undefined, undefined, true);
             merged.setEnabled(false);
             merged.name = name;
             merged.parent = assets;
             root.dispose();
-            return merged;
+            return {
+                mesh: merged,
+                animationGroups: container.animationGroups.map(animationGroup => cleanAnimationGroup(animationGroup))
+            };
         }
 
-        this.tree = await loadMergedAssetAsync("tree", "/public/models/evergreen2/evergreen2.gltf");
         this.bomb = await loadMergedAssetAsync("bomb", "/public/models/bomb/bomb.gltf");
+        this.tree = await loadMergedAssetAsync("tree", "/public/models/evergreen2/evergreen2.gltf");
         this.boost = await loadMergedAssetAsync("boost", "/public/models/wing/wing.gltf");
         this.bumper = await loadMergedAssetAsync("bumper", "/public/models/bumper/bumper.gltf");
         this.poison = await loadMergedAssetAsync("poison", "/public/models/poison_cloud/poison_cloud.gltf");

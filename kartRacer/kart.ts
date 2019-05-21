@@ -82,18 +82,21 @@ export class Kart extends TransformNode {
 
         if (main) {
             this._input = input;
-            const mainKartInfo = assets.mainKartInfo;
-            this._animationGroups = mainKartInfo.animationGroups;
+            const mainKart = assets.mainKart;
+            this._animationGroups = {
+                wheelsRotation: mainKart.animationGroups[0],
+                steering: mainKart.animationGroups[1]
+            };
             this._animationGroups.wheelsRotation.play(true);
             this._animationGroups.wheelsRotation.speedRatio = 0;
             this._animationGroups.steering.play(true);
             this._animationGroups.steering.pause();
-            this._mesh = mainKartInfo.mesh;
+            this._mesh = mainKart.mesh;
             this._mesh.name = "model";
             this._mesh.parent = this;
         }
         else {
-            this._mesh = assets.kart.createInstance("model");
+            this._mesh = assets.kart.mesh.createInstance("model");
             this._mesh.scaling.scaleInPlace(0.05);
             this._mesh.isPickable = false;
             this._mesh.parent = this;
@@ -241,7 +244,7 @@ export class Kart extends TransformNode {
     }
 
     private checkHazardCollision(name: string): number {
-        const radiusCollision = 2;
+        const radiusCollisionSquared = 4;
 
         const hazards = this.getScene().getTransformNodeByName(name);
 
@@ -252,9 +255,9 @@ export class Kart extends TransformNode {
         const meshes = hazards.getChildMeshes();
 
         for (var index = 0; index < meshes.length; ++index) {
-            const position = meshes[index].position;
-            const distance = this.position.subtract(position).length();
-            if (distance < radiusCollision && meshes[index].isVisible == true) {
+            const position = meshes[index].absolutePosition;
+            const distanceSquared = Vector3.DistanceSquared(this.position, position);
+            if (distanceSquared < radiusCollisionSquared && meshes[index].isVisible) {
                 return index;
             }
         }

@@ -1,5 +1,5 @@
-import { Vector3, Curve3, RibbonBuilder, PBRMaterial, Texture, Tools, Scene, TransformNode, Mesh, InstancedMesh, Scalar, Engine, Vector2, Nullable, Tags, Material } from "@babylonjs/core";
-import { Assets } from "./assets";
+import { Vector3, Curve3, RibbonBuilder, PBRMaterial, Texture, Tools, Scene, TransformNode, Mesh, Scalar, Vector2, Nullable, Tags, Quaternion, AnimationGroup } from "@babylonjs/core";
+import { Assets, IAssetInfo } from "./assets";
 
 export interface ITrackPoint {
     point: Vector3;
@@ -23,10 +23,11 @@ export interface ITrackPoint {
 export class Track {
     public readonly startPoint: Vector3;
     public readonly startTarget: Vector3;
-    public readonly trackPoints: ITrackPoint[];
+    public readonly trackPoints: Array<ITrackPoint>;
 
     private _varianceSeed: number;
     private _track: TransformNode;
+    private _animationGroups = new Array<AnimationGroup>();
 
     constructor(scene: Scene, assets: Assets, options: { radius: number, numPoints: number, varianceSeed: number, lateralVariance: number, heightVariance: number, width: number, height: number }) {
         this._varianceSeed = options.varianceSeed;
@@ -141,6 +142,10 @@ export class Track {
 
     public dispose(): void {
         this._track.dispose();
+
+        for (const animationGroup of this._animationGroups) {
+            animationGroup.dispose();
+        }
     }
 
     private _createRoad(scene: Scene, assets: Assets, trackPoints: Array<ITrackPoint>): Mesh {
@@ -265,7 +270,7 @@ export class Track {
         trees.parent = this._track;
         const treePoints = this._getTreePoints(trackPoints, 0.9, 10.0, 7.0);
         for (const treePoint of treePoints) {
-            const instance = assets.tree.createInstance("tree");
+            const instance = assets.tree.mesh.createInstance("tree");
             instance.isPickable = false;
             instance.position.copyFrom(treePoint);
             instance.rotation.y = this._random() * Scalar.TwoPi;
@@ -285,52 +290,47 @@ export class Track {
         const poisonHazards = new TransformNode("poison", scene);
         poisonHazards.parent = hazards;
 
-        const instances: Array<InstancedMesh> = [];
-        const createHazard = (name: string, mesh: Mesh, point: Vector3, rotationY: number, group: TransformNode, hazardScale: number): void => {
-            const instance = mesh.createInstance(name);
+        const createHazard = (name: string, assetInfo: IAssetInfo, point: { position: Vector3, rotation: Quaternion }, group: TransformNode, hazardScale: number): void => {
+            const transformNode = new TransformNode(name, scene);
+            transformNode.position.copyFrom(point.position);
+            transformNode.rotationQuaternion = new Quaternion().copyFrom(point.rotation);
+            transformNode.scaling.scaleInPlace(hazardScale);
+            transformNode.parent = group;
+
+            const instance = assetInfo.mesh.createInstance("instance");
             instance.isPickable = false;
-            instance.scaling.scaleInPlace(hazardScale);
-            instance.addRotation(0, rotationY, 0);
-            instance.position.copyFrom(point);
-            instance.rotation.y = this._random() * Scalar.TwoPi;
-            instance.parent = group;
-            instances.push(instance);
+            instance.parent = transformNode;
+
+            const animationGroups = assetInfo.animationGroups;
+            if (animationGroups.length > 0) {
+                const animationGroup = animationGroups[Math.floor(this._random() * animationGroups.length)];
+                const animationGroupClone = animationGroup.clone(animationGroup.name, () => instance);
+                animationGroupClone.play(true);
+                animationGroupClone.goToFrame(this._random(animationGroup.from, animationGroup.to));
+                this._animationGroups.push(animationGroupClone);
+            }
         };
 
         const hazardPoints = this._getHazardPoints(1.5, 0.13, trackPoints);
         for (const hazardPoint of hazardPoints) {
             const hazardType = this._random();
-            const rotationY = this._random();
             if (hazardType < 0.2) {
-                createHazard("bomb", assets.bomb, hazardPoint, rotationY, bombHazards, 1);
+                createHazard("bomb", assets.bomb, hazardPoint, bombHazards, 0.2);
             }
             else if (hazardType < 0.6) {
-                createHazard("boost", assets.boost, hazardPoint, rotationY, boostHazards, 8);
+                createHazard("boost", assets.boost, hazardPoint, boostHazards, 8);
             }
             else if (hazardType < 0.8) {
-                createHazard("bumper", assets.bumper, hazardPoint, rotationY, bumperHazards, 4);
+                createHazard("bumper", assets.bumper, hazardPoint, bumperHazards, 4);
             }
             else {
-                createHazard("poison", assets.poison, hazardPoint, rotationY, poisonHazards, 4);
+                createHazard("poison", assets.poison, hazardPoint, poisonHazards, 4);
             }
         }
-
-        scene.onBeforeRenderObservable.add(() => {
-            let scalar = Date.now() * 0.002;
-            for (const instance of instances) {
-                let scaleOriginal = 4.0;
-                if (instance.id == "bomb")
-                {
-                    scaleOriginal = .2;
-                }
-                const growth = scaleOriginal/8 * Math.sin(scalar++);
-                instance.scaling.set(scaleOriginal + growth, scaleOriginal - growth, scaleOriginal+ growth);
-            }
-        });
     }
 
-    private _getHazardPoints(height: number, density: number, trackPoints: Array<ITrackPoint>): Array<Vector3> {
-        const hazardPoints = new Array<Vector3>();
+    private _getHazardPoints(height: number, density: number, trackPoints: Array<ITrackPoint>): Array<{ position: Vector3, rotation: Quaternion }> {
+        const hazardPoints = new Array<{ position: Vector3, rotation: Quaternion }>();
         const percentageDistanceFromSides = .1;
         for (let index = 3; index < trackPoints.length - 1; ++index) {
             const trackPoint = trackPoints[index];
@@ -342,7 +342,10 @@ export class Track {
                 const distance = (this._random() * (1 - percentageDistanceFromSides * 2) + percentageDistanceFromSides);
                 const positionHazard = leftSide.add(direction.scale(distance));
                 positionHazard.y += height;
-                hazardPoints.push(positionHazard);
+                hazardPoints.push({
+                    position: positionHazard,
+                    rotation: Quaternion.RotationQuaternionFromAxis(trackPoint.right.scale(-1), trackPoint.up, trackPoint.forward.scale(-1))
+                });
             }
         }
         return hazardPoints;
@@ -385,7 +388,7 @@ export class Track {
     }
 
     private _getTreePoints(trackPoints: Array<ITrackPoint>, density: number, width: number, offset: number): Array<Vector3> {
-        const trees: Array<Vector3> = [];
+        const trees = new Array<Vector3>();
         for (const trackPoint of trackPoints) {
             const leftSide = trackPoint.leftFlat;
             const rightSide = trackPoint.rightFlat;
@@ -406,7 +409,7 @@ export class Track {
 
         // Delete trees that are generated too close to each other.
         const offsetSquared = offset * offset;
-        const spacedTrees: Array<Vector3> = [];
+        const spacedTrees = new Array<Vector3>();
         for (const tree of trees) {
             if (!spacedTrees.some(spacedTree => Vector3.DistanceSquared(tree, spacedTree) < offsetSquared)) {
                 spacedTrees.push(tree);
@@ -423,8 +426,8 @@ export class Track {
     }
 
     // https://stackoverflow.com/a/19303725/11256124
-    private _random(): number {
+    private _random(from = 0, to = 1): number {
         const x = Math.sin(this._varianceSeed++) * 10000;
-        return x - Math.floor(x);
+        return from + (x - Math.floor(x)) * (to - from);
     }
 }
