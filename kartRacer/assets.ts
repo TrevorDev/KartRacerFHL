@@ -43,23 +43,41 @@ export class Assets {
         }
 
         const kartResult = await SceneLoader.ImportMeshAsync(null, "/public/models/roadsterKart/roadsterKart.gltf");
-        const kartMesh = kartResult.meshes[0];
-        kartMesh.scaling.scaleInPlace(0.05);
-        kartMesh.isPickable = false;
-        kartMesh.getChildMeshes().forEach(child => child.isPickable = false);
+        kartResult.meshes[0].scaling.scaleInPlace(0.05);
+        kartResult.meshes[0].isPickable = false;
+        kartResult.meshes[0].getChildMeshes().forEach(child => child.isPickable = false);
+
+        const kartMesh = kartResult.meshes[0].clone("", null, false);
+
         this.mainKart = {
             mesh: kartResult.meshes[0] as Mesh,
             animationGroups: kartResult.animationGroups.map(animationGroup => cleanAnimationGroup(animationGroup))
         };
 
-        const mergedKartMesh = Mesh.MergeMeshes(kartMesh.getChildMeshes() as Mesh[], false, undefined, undefined, undefined, true);
-        mergedKartMesh.setEnabled(false);
-        mergedKartMesh.name = "kart";
-        mergedKartMesh.parent = assets;
+        var rand = Math.random();
+        var bodyMatNum = 1
+        if( rand < 0.33 ){
+            bodyMatNum = 2
+        }else if(rand < 0.66){
+            bodyMatNum = 3
+        }
+        this.mainKart.mesh.getChildMeshes(false).filter((c)=>{return c.name.indexOf("roadsterBody_low") != -1})[0].material = scene.materials.filter((m)=>{return m.name == "kartBodyMat"+bodyMatNum})[0]
+        this.mainKart.mesh.getChildMeshes(false).filter((c)=>{return c.name.indexOf("rollCage_low") != -1})[0].material = scene.materials.filter((m)=>{return m.name == "kartBodyMat"+bodyMatNum})[0]
+        this.mainKart.mesh.getChildMeshes(false).filter((c)=>{return c.name.indexOf("seat_low") != -1})[0].material = scene.materials.filter((m)=>{return m.name == "kartBodyMat"+bodyMatNum})[0]
+        this.mainKart.mesh.getChildMeshes(false).filter((c)=>{return c.name.indexOf("wheelDash_low") != -1})[0].material = scene.materials.filter((m)=>{return m.name == "kartBodyMat"+bodyMatNum})[0]
+
+        // const mergedKartMesh = Mesh.MergeMeshes(kartMesh.getChildMeshes() as Mesh[], false, undefined, undefined, undefined, true);
+        // mergedKartMesh.setEnabled(false);
+        // mergedKartMesh.name = "kart";
+        // mergedKartMesh.parent = assets;
         this.kart = {
-            mesh: mergedKartMesh,
+            mesh: kartMesh as any,
             animationGroups: []
         };
+        this.kart.mesh.getChildMeshes(false).filter((c)=>{return c.name.indexOf("roadsterBody_low") != -1})[0].material = scene.materials.filter((m)=>{return m.name == "kartBodyMat1"})[0]
+        this.kart.mesh.getChildMeshes(false).filter((c)=>{return c.name.indexOf("rollCage_low") != -1})[0].material = scene.materials.filter((m)=>{return m.name == "kartBodyMat1"})[0]
+        this.kart.mesh.getChildMeshes(false).filter((c)=>{return c.name.indexOf("seat_low") != -1})[0].material = scene.materials.filter((m)=>{return m.name == "kartBodyMat1"})[0]
+        this.kart.mesh.getChildMeshes(false).filter((c)=>{return c.name.indexOf("wheelDash_low") != -1})[0].material = scene.materials.filter((m)=>{return m.name == "kartBodyMat1"})[0]
 
         async function loadMergedAssetAsync(name: string, path: string): Promise<IAssetInfo> {
             const container = await SceneLoader.LoadAssetContainerAsync(path);
