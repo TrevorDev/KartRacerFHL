@@ -151,7 +151,7 @@ class App {
             radius: 200,
             numPoints: 16,
             varianceSeed: varianceSeed,
-            lateralVariance: 50,
+            lateralVariance: 30,
             heightVariance: 20,
             width: 35,
             height: 5
