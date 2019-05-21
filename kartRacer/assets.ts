@@ -1,4 +1,4 @@
-import { SceneLoader, Mesh, Sound, TransformNode, Scene, AnimationGroup, PBRMaterial, Texture, Vector3, Quaternion } from "@babylonjs/core";
+import { SceneLoader, AbstractMesh, Mesh, Sound, TransformNode, Scene, AnimationGroup, PBRMaterial, Texture, Vector3, Quaternion } from "@babylonjs/core";
 import { GLTFFileLoader, GLTFLoaderAnimationStartMode } from "@babylonjs/loaders/glTF";
 
 export interface IAssetInfo {
@@ -22,6 +22,19 @@ export class Assets {
     public trackWallMaterial: PBRMaterial;
     public trackGoalMaterial: PBRMaterial;
 
+    private static sanitizeMesh(root: AbstractMesh): void {
+        const badMeshes = root.getChildMeshes(false).filter((mesh : Mesh) => {
+            return mesh.name == "driverMat2" ||
+                   mesh.name == "driverMat3" ||
+                   mesh.name == "bodyMat2" ||
+                   mesh.name == "bodyMat3";
+        }) as Mesh[];
+
+        badMeshes.forEach((mesh : Mesh) => {
+            (mesh.parent as AbstractMesh).removeChild(mesh);
+        });
+    }
+
     public async loadAsync(scene: Scene): Promise<void> {
         const observer = SceneLoader.OnPluginActivatedObservable.add((loader: GLTFFileLoader) => {
             loader.animationStartMode = GLTFLoaderAnimationStartMode.NONE;
@@ -43,6 +56,7 @@ export class Assets {
         }
 
         const kartResult = await SceneLoader.ImportMeshAsync(null, "/public/models/roadsterKart/roadsterKart.gltf");
+        Assets.sanitizeMesh(kartResult.meshes[0]);
         kartResult.meshes[0].scaling.scaleInPlace(0.05);
         kartResult.meshes[0].isPickable = false;
         kartResult.meshes[0].getChildMeshes().forEach(child => child.isPickable = false);
@@ -66,10 +80,10 @@ export class Assets {
         this.mainKart.mesh.getChildMeshes(false).filter((c)=>{return c.name.indexOf("seat_low") != -1})[0].material = scene.materials.filter((m)=>{return m.name == "kartBodyMat"+bodyMatNum})[0]
         this.mainKart.mesh.getChildMeshes(false).filter((c)=>{return c.name.indexOf("wheelDash_low") != -1})[0].material = scene.materials.filter((m)=>{return m.name == "kartBodyMat"+bodyMatNum})[0]
 
-        // const mergedKartMesh = Mesh.MergeMeshes(kartMesh.getChildMeshes() as Mesh[], false, undefined, undefined, undefined, true);
-        // mergedKartMesh.setEnabled(false);
-        // mergedKartMesh.name = "kart";
-        // mergedKartMesh.parent = assets;
+        const mergedKartMesh = Mesh.MergeMeshes(kartMesh.getChildMeshes() as Mesh[], false, undefined, undefined, undefined, true);
+        mergedKartMesh.setEnabled(false);
+        mergedKartMesh.name = "kart";
+        mergedKartMesh.parent = assets;
         this.kart = {
             mesh: kartMesh as any,
             animationGroups: []
